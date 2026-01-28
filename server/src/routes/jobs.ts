@@ -10,7 +10,7 @@ import type { StartJobRequest, StartJobResponse } from '../types/index.js';
 const router = express.Router();
 
 // Start a new job
-router.post('/start', async (req, res) => {
+router.post('/start', async (req: Request, res: Response) => {
   try {
     const request = req.body as StartJobRequest;
     
@@ -33,7 +33,7 @@ router.post('/start', async (req, res) => {
 });
 
 // Get job details
-router.get('/:jobId', async (req, res) => {
+router.get('/:jobId', async (req: Request, res: Response) => {
   try {
     const { jobId } = req.params;
     
@@ -51,7 +51,7 @@ router.get('/:jobId', async (req, res) => {
 });
 
 // Stop a job
-router.post('/:jobId/stop', async (req, res) => {
+router.post('/:jobId/stop', async (req: Request, res: Response) => {
   try {
     const { jobId } = req.params;
     
