@@ -22,50 +22,113 @@ class RCService {
     try {
       const platform = await RingCentralSDK.getPlatform();
       
-      // Get extension details to find phone number
+      // Get extension details
       const extResponse = await platform.get(`/restapi/v1.0/account/~/extension/${extensionIdStr}`);
       const extData: any = await extResponse.json();
-      
-      // Get the extension's direct phone number
-      const fromPhoneNumber = extData.contact?.businessPhone || 
-                             extData.phoneNumbers?.find((p: any) => p.usageType === 'DirectNumber')?.phoneNumber ||
-                             extData.phoneNumbers?.find((p: any) => p.usageType === 'MainCompanyNumber')?.phoneNumber;
       
       logger.info(`📞 Starting Call-Out from extension ${extensionIdStr} to ${toPhoneNumber}`);
       logger.debug(`Extension details:`, {
         extensionNumber: extData.extensionNumber,
         name: extData.name,
-        directNumber: fromPhoneNumber,
         type: extData.type
       });
       
-      // Try Call-Out API with phone number (if available)
-      if (fromPhoneNumber) {
-        logger.info(`📱 Using direct number: ${fromPhoneNumber}`);
-        const response = await platform.post(
-          '/restapi/v1.0/account/~/telephony/call-out',
-          {
-            from: { phoneNumber: fromPhoneNumber },
-            to: { phoneNumber: toPhoneNumber }
+      // Try approach 1: Get device ID (preferred for SoftPhone)
+      let deviceId: string | undefined;
+      logger.info('🔍 Approach 1: Checking for online devices...');
+      try {
+        const devicesResponse = await platform.get(`/restapi/v1.0/account/~/extension/${extensionIdStr}/device`);
+        const devicesData: any = await devicesResponse.json();
+        logger.debug(`Found ${devicesData.records?.length || 0} devices for extension ${extensionIdStr}`);
+        
+        const onlineDevice = devicesData.records?.find((d: any) => d.status === 'Online');
+        deviceId = onlineDevice?.id;
+        
+        if (deviceId) {
+          logger.info(`✅ Found online device ID: ${deviceId} (${onlineDevice.type})`);
+          const response = await platform.post(
+            '/restapi/v1.0/account/~/telephony/call-out',
+            {
+              from: { deviceId },
+              to: { phoneNumber: toPhoneNumber }
+            }
+          );
+          
+          const data: any = await response.json();
+          const outboundParty = data.parties?.find((p: any) => p.direction === 'Outbound');
+          
+          if (!outboundParty) {
+            throw new Error('No outbound party found in Call-Out response');
           }
+          
+          logger.info(`✅ Call-Out initiated: sessionId=${data.sessionId}, partyId=${outboundParty.id}`);
+          
+          return {
+            sessionId: data.sessionId,
+            partyId: outboundParty.id
+          };
+        } else {
+          logger.info('⚠️ No online devices found');
+        }
+      } catch (deviceError: any) {
+        logger.warn(`Device approach failed: ${deviceError.message}`);
+      }
+      
+      // Try approach 2: Get phone number from account-level phone-number endpoint
+      logger.info('🔍 Approach 2: Looking up direct phone number...');
+      try {
+        const phoneResponse = await platform.get(`/restapi/v1.0/account/~/phone-number?perPage=100`);
+        const phoneData: any = await phoneResponse.json();
+        logger.debug(`Found ${phoneData.records?.length || 0} total phone numbers in account`);
+        
+        const extensionNumbers = phoneData.records?.filter((p: any) => 
+          String(p.extension?.id) === String(extensionIdStr) && p.usageType === 'DirectNumber'
         );
         
-        const data: any = await response.json();
-        const outboundParty = data.parties?.find((p: any) => p.direction === 'Outbound');
+        logger.debug(`Found ${extensionNumbers?.length || 0} DirectNumbers for extension ${extensionIdStr}`);
         
-        if (!outboundParty) {
-          throw new Error('No outbound party found in Call-Out response');
+        if (extensionNumbers && extensionNumbers.length > 0) {
+          const fromPhoneNumber = extensionNumbers[0].phoneNumber;
+          logger.info(`✅ Found direct number: ${fromPhoneNumber}`);
+          
+          const response = await platform.post(
+            '/restapi/v1.0/account/~/telephony/call-out',
+            {
+              from: { phoneNumber: fromPhoneNumber },
+              to: { phoneNumber: toPhoneNumber }
+            }
+          );
+          
+          const data: any = await response.json();
+          const outboundParty = data.parties?.find((p: any) => p.direction === 'Outbound');
+          
+          if (!outboundParty) {
+            throw new Error('No outbound party found in Call-Out response');
+          }
+          
+          logger.info(`✅ Call-Out initiated: sessionId=${data.sessionId}, partyId=${outboundParty.id}`);
+          
+          return {
+            sessionId: data.sessionId,
+            partyId: outboundParty.id
+          };
+        } else {
+          logger.warn(`⚠️ No DirectNumbers found for extension ${extensionIdStr}`);
         }
-        
-        logger.info(`✅ Call-Out initiated: sessionId=${data.sessionId}, partyId=${outboundParty.id}`);
-        
-        return {
-          sessionId: data.sessionId,
-          partyId: outboundParty.id
-        };
-      } else {
-        throw new Error(`Extension ${extensionIdStr} (${extData.name}) does not have a direct phone number assigned. Please contact your RingCentral administrator to assign a direct number to this extension.`);
+      } catch (phoneError: any) {
+        logger.error(`Phone number approach failed: ${phoneError.message}`, phoneError);
       }
+      
+      // If both approaches failed, provide clear error message
+      throw new Error(
+        `Extension ${extensionIdStr} (${extData.name}) cannot initiate calls.\n\n` +
+        `ISSUE: Call-Out API requires an ONLINE device (deviceId), but:\n` +
+        `  • No devices are online for this extension\n` +
+        `  • Call-Out API rejects phoneNumber/extensionNumber in "from" field\n\n` +
+        `SOLUTION: Keep RingCentral Phone app running and logged in for extension ${extData.extensionNumber}.\n\n` +
+        `For multiple concurrent calls, you need multiple devices online OR use a different approach.`
+      );
+      
     } catch (error: any) {
       const errorDetails = error.response ? await error.response.json().catch(() => ({})) : {};
       logger.error(`❌ Failed to initiate Call-Out from extension ${extensionIdStr} to ${toPhoneNumber}`, {
