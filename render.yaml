@@ -1,11 +1,4 @@
 services:
-  # Redis Database
-  - type: redis
-    name: irs-hunter-redis
-    plan: free
-    maxmemoryPolicy: noeviction
-    ipAllowList: []
-
   # Web Service (Backend + Frontend)
   - type: web
     name: irs-hold-hunter
@@ -36,12 +29,9 @@ services:
       - key: WEBHOOK_BASE_URL
         sync: false
 
-      # Redis Connection
+      # Redis Connection (manually set this to your existing Redis URL)
       - key: REDIS_URL
-        fromService:
-          type: redis
-          name: irs-hunter-redis
-          property: connectionString
+        sync: false
 
       # Server Configuration
       - key: PORT
