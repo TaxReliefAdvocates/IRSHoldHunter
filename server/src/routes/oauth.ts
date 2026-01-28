@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import RingCentralSDK from '../config/ringcentral.js';
 import { store } from '../storage/RedisStore.js';
 import logger from '../config/logger.js';
@@ -6,7 +6,7 @@ import logger from '../config/logger.js';
 const router = express.Router();
 
 // Step 1: Initiate OAuth login (doesn't require authentication)
-router.get('/authorize', async (req, res) => {
+router.get('/authorize', async (req: Request, res: Response) => {
   try {
     // Initialize SDK without authentication just to generate login URL
     const platform = await RingCentralSDK.getPlatform();
@@ -28,7 +28,7 @@ router.get('/authorize', async (req, res) => {
 });
 
 // Step 2: Handle OAuth callback
-router.get('/callback', async (req, res) => {
+router.get('/callback', async (req: Request, res: Response) => {
   try {
     const { code, state } = req.query;
     
@@ -50,16 +50,16 @@ router.get('/callback', async (req, res) => {
     });
     
     // Get token data
-    const authData = await platform.auth().data();
+    const authData: any = await platform.auth().data();
     
     logger.info('📝 Saving OAuth tokens to Redis...');
     logger.debug(`Access token length: ${authData.access_token?.length || 0}`);
     logger.debug(`Refresh token length: ${authData.refresh_token?.length || 0}`);
     
     // Store tokens in Redis (24h TTL, will be refreshed automatically)
-    await store.setConfig('rc_access_token', authData.access_token);
-    await store.setConfig('rc_refresh_token', authData.refresh_token);
-    await store.setConfig('rc_token_expiry', authData.expires_in.toString());
+    await store.setConfig('rc_access_token', authData.access_token || '');
+    await store.setConfig('rc_refresh_token', authData.refresh_token || '');
+    await store.setConfig('rc_token_expiry', (authData.expires_in || 3600).toString());
     await store.setConfig('rc_token_created_at', Date.now().toString());
     
     // Verify tokens were saved
@@ -69,7 +69,7 @@ router.get('/callback', async (req, res) => {
     
     // Get user info
     const response = await platform.get('/restapi/v1.0/account/~/extension/~');
-    const extension = await response.json();
+    const extension: any = await response.json();
     
     await store.setConfig('rc_authenticated_user', JSON.stringify({
       id: extension.id,
@@ -110,7 +110,7 @@ router.get('/callback', async (req, res) => {
 });
 
 // Step 3: Check auth status
-router.get('/status', async (req, res) => {
+router.get('/status', async (req: Request, res: Response) => {
   try {
     // Prevent caching of auth status
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -158,7 +158,7 @@ router.get('/status', async (req, res) => {
 });
 
 // Step 4: Logout
-router.post('/logout', async (req, res) => {
+router.post('/logout', async (req: Request, res: Response) => {
   try {
     // Revoke token with RingCentral
     try {

@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import logger from '../config/logger.js';
 import jobService from '../services/JobService.js';
 import liveDetectionService from '../services/LiveDetectionService.js';
@@ -68,7 +68,7 @@ router.post('/:jobId/stop', async (req, res) => {
 });
 
 // POST /api/jobs/:jobId/legs/:legId/confirm-live - Manual confirmation
-router.post('/:jobId/legs/:legId/confirm-live', async (req, res) => {
+router.post('/:jobId/legs/:legId/confirm-live', async (req: Request, res: Response) => {
   try {
     const { legId, jobId } = req.params;
     
@@ -97,7 +97,7 @@ router.post('/:jobId/legs/:legId/confirm-live', async (req, res) => {
 });
 
 // GET /api/legs/:legId/detection-status - Get detection status
-router.get('/legs/:legId/detection-status', async (req, res) => {
+router.get('/legs/:legId/detection-status', async (req: Request, res: Response) => {
   try {
     const { legId } = req.params;
     

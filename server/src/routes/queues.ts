@@ -6,7 +6,7 @@ import { store } from '../storage/RedisStore.js';
 const router = express.Router();
 
 // GET /api/queues - List all queues with filters
-router.get('/', async (req, res) => {
+router.get('/', async (req: Request, res: Response) => {
   try {
     const filters = {
       tags: req.query.tags ? String(req.query.tags).split(',') : undefined,
@@ -22,7 +22,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/queues/stats - Get queue statistics
-router.get('/stats', async (req, res) => {
+router.get('/stats', async (req: Request, res: Response) => {
   try {
     const stats = await queueService.getQueueStats();
     res.json(stats);
@@ -33,7 +33,7 @@ router.get('/stats', async (req, res) => {
 });
 
 // GET /api/queues/default - Get default queue
-router.get('/default', async (req, res) => {
+router.get('/default', async (req: Request, res: Response) => {
   try {
     const queue = await store.getDefaultQueue();
     if (!queue) {
@@ -47,7 +47,7 @@ router.get('/default', async (req, res) => {
 });
 
 // GET /api/queues/:id - Get single queue
-router.get('/:id', async (req, res) => {
+router.get('/:id', async (req: Request, res: Response) => {
   try {
     const queue = await store.getQueue(req.params.id);
     if (!queue) {
@@ -61,7 +61,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/queues/sync - Sync from RingCentral
-router.post('/sync', async (req, res) => {
+router.post('/sync', async (req: Request, res: Response) => {
   try {
     const count = await queueService.syncQueuesFromRC();
     res.json({ 
@@ -76,7 +76,7 @@ router.post('/sync', async (req, res) => {
 });
 
 // PATCH /api/queues/:id - Update queue config
-router.patch('/:id', async (req, res) => {
+router.patch('/:id', async (req: Request, res: Response) => {
   try {
     const queue = await store.getQueue(req.params.id);
     if (!queue) {
