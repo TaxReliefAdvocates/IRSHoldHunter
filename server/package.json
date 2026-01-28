@@ -1,0 +1,40 @@
+{
+  "name": "irs-hold-hunter-server",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "generate-jwt": "tsx scripts/generate-jwt.ts",
+    "list-extensions": "tsx scripts/list-extensions.ts",
+    "list-subscriptions": "tsx scripts/list-subscriptions.ts",
+    "test-connection": "tsx scripts/test-connection.ts",
+    "check-limits": "tsx scripts/check-limits.ts",
+    "sync-extensions": "tsx scripts/sync-extensions.ts",
+    "sync-queues": "tsx scripts/sync-queues.ts",
+    "clear-redis": "redis-cli FLUSHDB",
+    "list-numbers": "tsx scripts/list-phone-numbers.ts",
+    "enable-with-numbers": "tsx scripts/enable-extensions-with-numbers.ts",
+    "check-call-limits": "tsx scripts/check-call-limits.ts",
+    "check-user-role": "tsx scripts/check-user-role.ts"
+  },
+  "dependencies": {
+    "@ringcentral/sdk": "^5.0.0",
+    "bull": "^4.16.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.0",
+    "express": "^4.21.0",
+    "ioredis": "^5.4.0",
+    "socket.io": "^4.8.0",
+    "winston": "^3.15.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}

@@ -1,0 +1,57 @@
+services:
+  # Redis Database
+  - type: redis
+    name: irs-hunter-redis
+    plan: free
+    maxmemoryPolicy: noeviction
+    ipAllowList: []
+
+  # Web Service (Backend + Frontend)
+  - type: web
+    name: irs-hold-hunter
+    runtime: node
+    plan: free
+    region: oregon
+    branch: main
+    buildCommand: |
+      cd server && npm install && npm run build &&
+      cd ../client && npm install && npm run build
+    startCommand: cd server && npm start
+    envVars:
+      # RingCentral Configuration
+      - key: RC_SERVER_URL
+        value: https://platform.ringcentral.com
+      - key: RC_CLIENT_ID
+        sync: false
+      - key: RC_CLIENT_SECRET
+        sync: false
+      - key: RC_JWT_TOKEN
+        sync: false
+
+      # System Configuration
+      - key: IRS_NUMBER
+        value: +18008291040
+      - key: QUEUE_E164
+        value: +18885551234
+      - key: WEBHOOK_BASE_URL
+        sync: false
+
+      # Redis Connection
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: irs-hunter-redis
+          property: connectionString
+
+      # Server Configuration
+      - key: PORT
+        value: 10000
+      - key: NODE_ENV
+        value: production
+
+      # Client URL (for CORS)
+      - key: CLIENT_URL
+        fromService:
+          type: web
+          name: irs-hold-hunter
+          property: host
