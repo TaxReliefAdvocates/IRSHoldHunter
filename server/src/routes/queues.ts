@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import logger from '../config/logger.js';
 import queueService from '../services/QueueService.js';
 import { store } from '../storage/RedisStore.js';
@@ -99,7 +99,7 @@ router.patch('/:id', async (req, res) => {
 });
 
 // POST /api/queues/:id/set-default - Set as default queue
-router.post('/:id/set-default', async (req, res) => {
+router.post('/:id/set-default', async (req: Request, res: Response) => {
   try {
     await store.setDefaultQueue(req.params.id);
     res.json({ success: true, message: 'Default queue updated' });
@@ -110,7 +110,7 @@ router.post('/:id/set-default', async (req, res) => {
 });
 
 // POST /api/queues/:id/tags - Add tag to queue
-router.post('/:id/tags', async (req, res) => {
+router.post('/:id/tags', async (req: Request, res: Response) => {
   try {
     const { tag } = req.body;
     
@@ -127,7 +127,7 @@ router.post('/:id/tags', async (req, res) => {
 });
 
 // DELETE /api/queues/:id/tags/:tag - Remove tag from queue
-router.delete('/:id/tags/:tag', async (req, res) => {
+router.delete('/:id/tags/:tag', async (req: Request, res: Response) => {
   try {
     await queueService.removeTag(req.params.id, req.params.tag);
     res.json({ success: true, message: 'Tag removed' });
@@ -138,7 +138,7 @@ router.delete('/:id/tags/:tag', async (req, res) => {
 });
 
 // DELETE /api/queues/:id - Delete queue
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', async (req: Request, res: Response) => {
   try {
     await store.deleteQueue(req.params.id);
     res.json({ success: true, message: 'Queue deleted' });

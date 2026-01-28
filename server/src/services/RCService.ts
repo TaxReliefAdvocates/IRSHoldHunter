@@ -24,7 +24,7 @@ class RCService {
       
       // Get extension details to find phone number
       const extResponse = await platform.get(`/restapi/v1.0/account/~/extension/${extensionIdStr}`);
-      const extData = await extResponse.json();
+      const extData: any = await extResponse.json();
       
       // Get the extension's direct phone number
       const fromPhoneNumber = extData.contact?.businessPhone || 
@@ -50,7 +50,7 @@ class RCService {
           }
         );
         
-        const data = await response.json();
+        const data: any = await response.json();
         const outboundParty = data.parties?.find((p: any) => p.direction === 'Outbound');
         
         if (!outboundParty) {
@@ -135,7 +135,7 @@ class RCService {
         expiresIn: 604800, // 7 days
       });
       
-      const data = await response.json();
+      const data: any = await response.json();
       
       logger.info(`✅ Webhook subscription created: ${data.id}`);
       
@@ -165,7 +165,7 @@ class RCService {
     try {
       const platform = await RingCentralSDK.getPlatform();
       const response = await platform.get('/restapi/v1.0/subscription');
-      const data = await response.json();
+      const data: any = await response.json();
       return data.records || [];
     } catch (error) {
       logger.error('❌ Failed to list subscriptions:', error);
@@ -181,7 +181,7 @@ class RCService {
       logger.debug('📋 Fetching call queues from RingCentral');
       
       const response = await platform.get('/restapi/v1.0/account/~/call-queues');
-      const data = await response.json();
+      const data: any = await response.json();
       
       return data.records || [];
     } catch (error) {
@@ -197,7 +197,7 @@ class RCService {
       logger.debug(`📋 Fetching details for queue: ${queueId}`);
       
       const response = await platform.get(`/restapi/v1.0/account/~/extension/${queueId}`);
-      const data = await response.json();
+      const data: any = await response.json();
       
       return {
         id: data.id,
@@ -224,7 +224,7 @@ class RCService {
       const response = await platform.get(
         `/restapi/v1.0/account/~/extension/${extensionIdStr}/presence`
       );
-      const data = await response.json();
+      const data: any = await response.json();
       return {
         presenceStatus: data.presenceStatus,
         telephonyStatus: data.telephonyStatus,
@@ -243,7 +243,7 @@ class RCService {
       const response = await platform.get(
         `/restapi/v1.0/account/~/extension/${extensionIdStr}/active-calls`
       );
-      const data = await response.json();
+      const data: any = await response.json();
       return data.records || [];
     } catch (error) {
       logger.debug(`Failed to get active calls for extension ${extensionId}:`, error);

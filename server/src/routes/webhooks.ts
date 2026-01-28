@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import logger from '../config/logger.js';
 import webhookService from '../services/WebhookService.js';
 import type { RCWebhookPayload } from '../types/index.js';
@@ -6,7 +6,7 @@ import type { RCWebhookPayload } from '../types/index.js';
 const router = express.Router();
 
 // RingCentral webhook endpoint
-router.post('/ringcentral', async (req, res) => {
+router.post('/ringcentral', async (req: Request, res: Response) => {
   try {
     // Handle webhook validation
     const validationToken = req.headers['validation-token'] as string;

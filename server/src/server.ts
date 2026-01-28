@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import express from 'express';
+import express, { Request, Response } from 'express';
 import cors from 'cors';
 import http from 'http';
 import path from 'path';
@@ -49,7 +49,7 @@ app.use('/api/queues', queuesRouter);
 app.use('/api/destinations', destinationsRouter);
 
 // Health check
-app.get('/health', (req, res) => {
+app.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
@@ -59,12 +59,12 @@ if (process.env.NODE_ENV === 'production') {
   app.use(express.static(clientBuildPath));
   
   // SPA fallback - serve index.html for all non-API routes
-  app.get('*', (req, res) => {
+  app.get('*', (req: Request, res: Response) => {
     res.sendFile(path.join(clientBuildPath, 'index.html'));
   });
 }
 
-app.get('/api/jobs', async (req, res) => {
+app.get('/api/jobs', async (req: Request, res: Response) => {
   try {
     const jobs = await store.getActiveJobs();
     res.json(jobs);

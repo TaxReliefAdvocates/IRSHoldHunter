@@ -221,7 +221,7 @@ class JobService {
       });
       
       // Release extensions
-      const extensionIds = job.callLegs.map(leg => leg.holdExtensionId);
+      const extensionIds = legs.map(leg => leg.holdExtensionId);
       await extensionService.releaseExtensions(extensionIds);
       
       logger.info(`✅ Job ${jobId} stopped`);

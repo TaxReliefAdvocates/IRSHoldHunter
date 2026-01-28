@@ -10,7 +10,7 @@ class ExtensionService {
       
       const platform = await import('../config/ringcentral.js').then(m => m.default.getPlatform());
       const response = await platform.get('/restapi/v1.0/account/~/extension');
-      const data = await response.json();
+      const data: any = await response.json();
       
       let syncedCount = 0;
       
@@ -23,7 +23,7 @@ class ExtensionService {
         if (ext.type === 'User' && ext.status === 'Enabled') {
           try {
             const devicesResponse = await platform.get(`/restapi/v1.0/account/~/extension/${ext.id}/device`);
-            const devicesData = await devicesResponse.json();
+            const devicesData: any = await devicesResponse.json();
             // Use the first active device
             const activeDevice = devicesData.records?.find((d: any) => 
               d.status === 'Online' && d.useAsCommonPhone === false
