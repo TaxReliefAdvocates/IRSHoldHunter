@@ -11,12 +11,16 @@ export function LiveAudioPlayer({ jobId, legId, compact = false }: LiveAudioPlay
   const { socket } = useSocket();
   const [isListening, setIsListening] = useState(false);
   const [audioLevel, setAudioLevel] = useState(0);
+  const [transcript, setTranscript] = useState<string[]>([]);
   const audioContextRef = useRef<AudioContext | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const audioQueueRef = useRef<Float32Array[]>([]);
   const nextPlayTimeRef = useRef(0);
   const isPlayingRef = useRef(false);
+  const recognitionRef = useRef<any>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const streamDestinationRef = useRef<MediaStreamAudioDestinationNode | null>(null);
 
   useEffect(() => {
     if (!socket) return;
@@ -118,18 +122,58 @@ export function LiveAudioPlayer({ jobId, legId, compact = false }: LiveAudioPlay
     const gainNode = audioContext.createGain();
     const analyser = audioContext.createAnalyser();
     
+    // Create stream destination for speech recognition
+    const streamDestination = audioContext.createMediaStreamDestination();
+    
     gainNode.gain.value = 2.5; // Balanced volume boost
     analyser.fftSize = 256;
     
     gainNode.connect(analyser);
+    gainNode.connect(streamDestination); // Route to recognition
     analyser.connect(audioContext.destination);
 
     audioContextRef.current = audioContext;
     gainNodeRef.current = gainNode;
     analyserRef.current = analyser;
+    streamDestinationRef.current = streamDestination;
+    mediaStreamRef.current = streamDestination.stream;
     nextPlayTimeRef.current = 0; // Reset play time
     audioQueueRef.current = []; // Clear any old audio
     isPlayingRef.current = false;
+
+    // Initialize speech recognition
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+      
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+      
+      recognition.onresult = (event: any) => {
+        const results = Array.from(event.results);
+        const transcriptText = results
+          .map((result: any) => result[0].transcript)
+          .join(' ');
+        
+        if (event.results[event.results.length - 1].isFinal) {
+          setTranscript(prev => [...prev.slice(-10), transcriptText]); // Keep last 10 lines
+        }
+      };
+      
+      recognition.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+      };
+      
+      // Start recognition with the audio stream
+      try {
+        recognition.start();
+        recognitionRef.current = recognition;
+        console.log('🎤 Speech recognition started');
+      } catch (error) {
+        console.warn('Speech recognition not available:', error);
+      }
+    }
 
     setIsListening(true);
   };
@@ -137,17 +181,30 @@ export function LiveAudioPlayer({ jobId, legId, compact = false }: LiveAudioPlay
   const stopListening = () => {
     isPlayingRef.current = false; // Stop playback immediately
     
+    // Stop speech recognition
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+        recognitionRef.current = null;
+      } catch (error) {
+        console.error('Error stopping recognition:', error);
+      }
+    }
+    
     if (audioContextRef.current) {
       audioContextRef.current.close();
       audioContextRef.current = null;
       gainNodeRef.current = null;
       analyserRef.current = null;
+      streamDestinationRef.current = null;
+      mediaStreamRef.current = null;
     }
     
     audioQueueRef.current = [];
     nextPlayTimeRef.current = 0;
     setIsListening(false);
     setAudioLevel(0);
+    setTranscript([]);
   };
 
   // Compact mode for table rows
@@ -172,35 +229,51 @@ export function LiveAudioPlayer({ jobId, legId, compact = false }: LiveAudioPlay
 
   // Full mode for main section
   return (
-    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-      <button
-        onClick={isListening ? stopListening : startListening}
-        className={`px-4 py-2 rounded-md font-medium transition-colors ${
-          isListening
-            ? 'bg-red-500 hover:bg-red-600 text-white'
-            : 'bg-blue-500 hover:bg-blue-600 text-white'
-        }`}
-      >
-        {isListening ? '🔇 Stop Listening' : '🎧 Listen Live'}
-      </button>
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+        <button
+          onClick={isListening ? stopListening : startListening}
+          className={`px-4 py-2 rounded-md font-medium transition-colors ${
+            isListening
+              ? 'bg-red-500 hover:bg-red-600 text-white'
+              : 'bg-blue-500 hover:bg-blue-600 text-white'
+          }`}
+        >
+          {isListening ? '🔇 Stop Listening' : '🎧 Listen Live'}
+        </button>
 
-      {isListening && (
-        <div className="flex items-center gap-2 flex-1">
-          <span className="text-sm text-gray-600 font-medium">Audio Level:</span>
-          <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-green-500 transition-all duration-100"
-              style={{ width: `${audioLevel * 100}%` }}
-            />
+        {isListening && (
+          <div className="flex items-center gap-2 flex-1">
+            <span className="text-sm text-gray-600 font-medium">Audio Level:</span>
+            <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-green-500 transition-all duration-100"
+                style={{ width: `${audioLevel * 100}%` }}
+              />
+            </div>
+            <span className="text-xs text-gray-500">{Math.round(audioLevel * 100)}%</span>
           </div>
-          <span className="text-xs text-gray-500">{Math.round(audioLevel * 100)}%</span>
-        </div>
-      )}
+        )}
 
-      {isListening && (
-        <div className="flex items-center gap-1">
-          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-          <span className="text-xs text-gray-600 font-medium">LIVE</span>
+        {isListening && (
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+            <span className="text-xs text-gray-600 font-medium">LIVE</span>
+          </div>
+        )}
+      </div>
+      
+      {/* Live Transcript */}
+      {isListening && transcript.length > 0 && (
+        <div className="p-3 bg-blue-50 rounded-lg border border-blue-200 max-h-40 overflow-y-auto">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-sm font-semibold text-blue-700">📝 Live Transcript:</span>
+          </div>
+          <div className="space-y-1">
+            {transcript.map((line, i) => (
+              <p key={i} className="text-sm text-gray-800">{line}</p>
+            ))}
+          </div>
         </div>
       )}
     </div>
