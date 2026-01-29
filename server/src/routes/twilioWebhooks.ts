@@ -59,6 +59,9 @@ router.post('/call-flow', async (req: Request, res: Response) => {
           lastEventAt: new Date().toISOString(),
           lastEventType: 'dtmf_1_sent'
         });
+        
+        // Notify audio handler for logging
+        await audioHandler.notifyDtmf1Sent(CallSid);
       }
     } catch (error) {
       logger.error(`Failed to send DTMF 1:`, error);

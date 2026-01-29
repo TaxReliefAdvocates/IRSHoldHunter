@@ -142,6 +142,12 @@ export class AudioHandler {
       if (isVoicemail) {
         logger.info(`🤖 VOICEMAIL DETECTED, hanging up ${callSid}`);
         
+        await this.emitDetectionLog(callSid, {
+          type: 'detection',
+          message: '🤖 Voicemail detected',
+          data: { callDuration, energy, variance }
+        });
+        
         await this.emitStatus(callSid, {
           status: 'voicemail',
           message: '🤖 Voicemail detected',
@@ -171,6 +177,12 @@ export class AudioHandler {
       
       if (isTooBusy) {
         connection.tooBusyDetected = true;
+        
+        await this.emitDetectionLog(callSid, {
+          type: 'detection',
+          message: '❌ IRS too busy message detected',
+          data: { timeSinceDtmf2, energy, variance }
+        });
         
         await this.emitStatus(callSid, {
           status: 'too_busy',
@@ -206,6 +218,12 @@ export class AudioHandler {
         
         logger.info(`🎵 Hold music confirmed: ${callSid}`);
         
+        await this.emitDetectionLog(callSid, {
+          type: 'detection',
+          message: '🎵 Hold music confirmed',
+          data: { timeSinceDtmf2, energy, variance }
+        });
+        
         await this.emitStatus(callSid, {
           status: 'hold_music',
           message: '🎵 On hold',
@@ -233,6 +251,12 @@ export class AudioHandler {
         
         logger.info(`🤫 Music stopped: ${callSid} - LISTENING`);
         
+        await this.emitDetectionLog(callSid, {
+          type: 'detection',
+          message: '🤫 Music stopped - listening for agent',
+          data: { energy, variance }
+        });
+        
         await this.emitStatus(callSid, {
           status: 'silence',
           message: '🤫 Listening...',
@@ -253,8 +277,15 @@ export class AudioHandler {
       
       connection.liveAgentConfidence = confidence;
       
+      // Emit detection updates periodically
       const now = Date.now();
       if (now - connection.lastEmitTime > 500) {
+        await this.emitDetectionLog(callSid, {
+          type: 'detection',
+          message: `🎯 Agent detection: ${(confidence * 100).toFixed(0)}%`,
+          data: { confidence, timeSinceDtmf2, energy, variance }
+        });
+        
         await this.emitStatus(callSid, {
           status: 'detecting_agent',
           message: `🎯 Detecting: ${(confidence * 100).toFixed(0)}%`,
@@ -266,6 +297,12 @@ export class AudioHandler {
       // AUTO-TRANSFER when threshold reached
       if (detected && !connection.transferTriggered) {
         logger.info(`🚀 AUTO-TRANSFER triggered (${(confidence * 100).toFixed(0)}%)`);
+        
+        await this.emitDetectionLog(callSid, {
+          type: 'transfer',
+          message: `🚀 Live agent detected! Auto-transfer triggered`,
+          data: { confidence, timeSinceDtmf2 }
+        });
         
         connection.transferTriggered = true;
         await this.triggerTransfer(callSid, confidence);
@@ -362,6 +399,20 @@ export class AudioHandler {
     }
   }
 
+  private async emitDetectionLog(callSid: string, log: any) {
+    const leg = await store.getCallLegByTwilioSid(callSid);
+    if (!leg) return;
+    
+    if (this.io) {
+      this.io.to(`job:${leg.jobId}`).emit('detection-log', {
+        timestamp: new Date().toISOString(),
+        callSid,
+        legId: leg.id,
+        ...log
+      });
+    }
+  }
+
   private handleStop(data: any) {
     const { streamSid } = data.stop;
     
@@ -381,7 +432,22 @@ export class AudioHandler {
     if (connection) {
       connection.dtmf2SentAt = Date.now();
       logger.info(`📱 DTMF #2 timing recorded: ${callSid}`);
+      
+      // Emit log
+      this.emitDetectionLog(callSid, {
+        type: 'dtmf',
+        message: '📱 DTMF "2" sent - listening for agent',
+        data: { digit: '2' }
+      });
     }
+  }
+
+  async notifyDtmf1Sent(callSid: string) {
+    await this.emitDetectionLog(callSid, {
+      type: 'dtmf',
+      message: '📱 DTMF "1" sent - English selected',
+      data: { digit: '1' }
+    });
   }
 }
 
