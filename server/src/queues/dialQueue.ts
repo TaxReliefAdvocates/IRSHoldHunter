@@ -16,12 +16,17 @@ export const dialQueue = new Queue<DialJobData>(
     settings: {
       maxStalledCount: 2,
       stalledInterval: 30000,
+    },
+    limiter: {
+      max: 2, // Max 2 jobs
+      duration: 1000, // Per second (Twilio rate limit)
+      bounceBack: false
     }
   }
 );
 
-// Process up to 10 jobs concurrently (for 50 lines)
-dialQueue.process(10, async (job) => {
+// Process up to 5 jobs concurrently (rate limited by limiter above)
+dialQueue.process(5, async (job) => {
   const { legId, jobId, destinationNumber } = job.data;
   
   try {

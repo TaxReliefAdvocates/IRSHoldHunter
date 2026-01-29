@@ -108,11 +108,10 @@ class JobService {
         legs.push(leg);
       }
       
-      // Queue dial jobs with randomized stagger (2-8 seconds)
+      // Queue dial jobs with staggered delays to respect Twilio rate limits (2 calls/sec)
+      // For 22 calls: spread over ~11 seconds (500ms between each)
       for (let i = 0; i < legs.length; i++) {
-        const baseDelay = i * 2000; // 2 second base stagger
-        const randomDelay = Math.floor(Math.random() * 6000); // Random 0-6 seconds
-        const totalDelay = baseDelay + randomDelay;
+        const delay = i * 500; // 500ms stagger = 2 calls per second
         
         await dialQueue.add(
           {
@@ -121,14 +120,18 @@ class JobService {
             destinationNumber: destinationConfig.phoneNumber,
           },
           {
-            delay: totalDelay,
-            attempts: 1,
+            delay,
+            attempts: 2, // Allow 1 retry for transient Twilio errors
             removeOnComplete: true,
+            backoff: {
+              type: 'exponential',
+              delay: 2000
+            }
           }
         );
         
         logger.info(
-          `📞 Leg ${i + 1}/${lineCount} queued via Twilio, delay=${(totalDelay / 1000).toFixed(1)}s`
+          `📞 Leg ${i + 1}/${lineCount} queued via Twilio, delay=${(delay / 1000).toFixed(1)}s`
         );
       }
       
