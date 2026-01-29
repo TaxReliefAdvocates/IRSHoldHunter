@@ -2,6 +2,7 @@ import WebSocket from 'ws';
 import { store } from '../storage/RedisStore.js';
 import { twilioCallingService } from '../services/TwilioCallingService.js';
 import { liveAgentDetector } from '../services/LiveAgentDetector.js';
+import { speechRecognitionService } from '../services/SpeechRecognitionService.js';
 import logger from '../config/logger.js';
 
 interface AudioAnalysis {
@@ -28,6 +29,7 @@ interface StreamConnection {
   lastEmitTime: number;
   lastAudioEmit?: number;
   lastAnalysisLog?: number; // Track last analysis log emission
+  transcriptBuffer: string[]; // Store recent transcripts
 }
 
 export class AudioHandler {
@@ -36,6 +38,13 @@ export class AudioHandler {
 
   setIO(io: any) {
     this.io = io;
+    
+    // Listen for speech recognition transcripts
+    if (speechRecognitionService.isEnabled()) {
+      speechRecognitionService.onTranscript((callSid, transcript, isFinal) => {
+        this.handleTranscript(callSid, transcript, isFinal);
+      });
+    }
   }
 
   handleConnection(ws: WebSocket) {
@@ -75,8 +84,14 @@ export class AudioHandler {
       holdMusicDetected: false,
       liveAgentConfidence: 0,
       transferTriggered: false,
-      lastEmitTime: 0
+      lastEmitTime: 0,
+      transcriptBuffer: []
     });
+    
+    // Start speech recognition if enabled
+    if (speechRecognitionService.isEnabled()) {
+      await speechRecognitionService.startTranscription(callSid);
+    }
   }
 
   private async handleMedia(data: any) {
@@ -88,6 +103,11 @@ export class AudioHandler {
     
     const audioChunk = Buffer.from(media.payload, 'base64');
     connection.audioBuffer.push(audioChunk);
+    
+    // Send audio to speech recognition
+    if (speechRecognitionService.isEnabled()) {
+      speechRecognitionService.sendAudio(connection.callSid, audioChunk);
+    }
     
     // Forward audio to frontend for live listening (NO throttling for best quality)
     // Twilio sends ~50 chunks/sec naturally, Socket.IO can handle it
@@ -438,9 +458,120 @@ export class AudioHandler {
         `(hold=${connection.holdMusicDetected}, ` +
         `transferred=${connection.transferTriggered}, ` +
         `confidence=${connection.liveAgentConfidence.toFixed(2)})`);
+      
+      // Stop speech recognition
+      if (speechRecognitionService.isEnabled()) {
+        speechRecognitionService.stopTranscription(connection.callSid);
+      }
     }
     
     this.connections.delete(streamSid);
+  }
+
+  private async handleTranscript(callSid: string, transcript: string, isFinal: boolean) {
+    // Find the connection for this call
+    const connection = Array.from(this.connections.values()).find(c => c.callSid === callSid);
+    if (!connection) return;
+    
+    // Store transcript
+    if (isFinal) {
+      connection.transcriptBuffer.push(transcript);
+      if (connection.transcriptBuffer.length > 20) {
+        connection.transcriptBuffer.shift();
+      }
+    }
+    
+    // Emit transcript log
+    await this.emitDetectionLog(callSid, {
+      type: 'detection',
+      message: `🗣️  ${isFinal ? 'SAID' : 'saying'}: "${transcript}"`,
+      data: { isFinal, transcript }
+    });
+    
+    // Smart detection based on what was said
+    const lowerTranscript = transcript.toLowerCase();
+    
+    // Detect "office closed" messages
+    if (lowerTranscript.includes('office') && (lowerTranscript.includes('closed') || lowerTranscript.includes('hours'))) {
+      logger.info(`🕐 Detected office closed message: "${transcript}"`);
+      await this.emitDetectionLog(callSid, {
+        type: 'detection',
+        message: '🕐 Office closed message detected',
+        data: { transcript }
+      });
+    }
+    
+    // Detect voicemail
+    if (lowerTranscript.includes('leave') && lowerTranscript.includes('message')) {
+      logger.info(`📭 Voicemail detected: "${transcript}"`);
+      connection.tooBusyDetected = true; // Prevent other detection
+      
+      await this.emitDetectionLog(callSid, {
+        type: 'detection',
+        message: '📭 Voicemail greeting detected',
+        data: { transcript }
+      });
+      
+      setTimeout(async () => {
+        const leg = await store.getCallLegByTwilioSid(callSid);
+        if (leg && leg.status !== 'ENDED') {
+          await store.updateCallLeg(leg.id, {
+            status: 'FAILED',
+            endedAt: new Date().toISOString(),
+            lastEventType: 'voicemail'
+          });
+          await twilioCallingService.hangUp(callSid);
+        }
+      }, 2000);
+    }
+    
+    // Detect "too busy" messages
+    if (lowerTranscript.includes('busy') || lowerTranscript.includes('try again') || lowerTranscript.includes('high call volume')) {
+      logger.info(`❌ Too busy message detected: "${transcript}"`);
+      connection.tooBusyDetected = true;
+      
+      await this.emitDetectionLog(callSid, {
+        type: 'detection',
+        message: '❌ "Too busy" message detected',
+        data: { transcript }
+      });
+      
+      setTimeout(async () => {
+        const leg = await store.getCallLegByTwilioSid(callSid);
+        if (leg && leg.status !== 'ENDED') {
+          await store.updateCallLeg(leg.id, {
+            status: 'FAILED',
+            endedAt: new Date().toISOString(),
+            lastEventType: 'too_busy'
+          });
+          await twilioCallingService.hangUp(callSid);
+        }
+      }, 3000);
+    }
+    
+    // Detect live agent greetings
+    if (isFinal && (
+      lowerTranscript.includes('hello') ||
+      lowerTranscript.includes('how can i help') ||
+      lowerTranscript.includes('how may i help') ||
+      lowerTranscript.includes('speaking') ||
+      lowerTranscript.includes('this is')
+    )) {
+      logger.info(`🎯 Live agent greeting detected: "${transcript}"`);
+      
+      if (!connection.transferTriggered && connection.dtmf2SentAt) {
+        connection.liveAgentConfidence = 0.95; // Very high confidence from speech
+        
+        await this.emitDetectionLog(callSid, {
+          type: 'transfer',
+          message: '🎯 Live agent detected from speech!',
+          data: { transcript, confidence: 0.95 }
+        });
+        
+        connection.transferTriggered = true;
+        await this.triggerTransfer(callSid, 0.95);
+      }
+    }
   }
 
   notifyDtmf2Sent(callSid: string) {
