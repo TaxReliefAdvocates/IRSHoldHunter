@@ -216,15 +216,33 @@ router.post('/trigger-transfer/:callSid', async (req: Request, res: Response) =>
     }
     
     logger.info(`   Queue: "${queue.name}" (${queue.extensionNumber})`);
-    logger.info(`   Direct phone: ${queue.phoneNumber || 'NONE - will use extension dialing'}`);
+    logger.info(`   Cached phone: ${queue.phoneNumber || 'NONE - will fetch fresh'}`);
+    
+    // If queue has no phone number cached, fetch it LIVE from RingCentral
+    let phoneNumber = queue.phoneNumber;
+    if (!phoneNumber) {
+      logger.info(`🔄 No cached phone number - fetching fresh from RingCentral...`);
+      try {
+        const freshQueueDetails = await rcService.getQueueDetails(queue.id);
+        phoneNumber = freshQueueDetails.phoneNumber;
+        
+        if (phoneNumber) {
+          logger.info(`✅ Found phone number from fresh fetch: ${phoneNumber}`);
+          // Update cache for next time
+          await store.saveQueue({ ...queue, phoneNumber });
+        }
+      } catch (error) {
+        logger.error(`Failed to fetch fresh queue details:`, error);
+      }
+    }
     
     // Determine transfer method
     let transferNumber: string;
     let extensionNumber: string | undefined;
     
-    if (queue.phoneNumber) {
+    if (phoneNumber) {
       // Queue has direct number - dial it directly
-      transferNumber = queue.phoneNumber;
+      transferNumber = phoneNumber;
       logger.info(`🎯 Using direct number: ${transferNumber}`);
     } else if (queue.extensionNumber) {
       // No direct number - use RingCentral main number + extension
