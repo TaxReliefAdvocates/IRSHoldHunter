@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiClient } from '../lib/api';
 
 interface DestinationConfig {
   id: string;
@@ -28,12 +29,12 @@ export function DestinationSelector({
 
   const { data: destinations, isLoading } = useQuery({
     queryKey: ['destinations', { activeOnly: true }],
-    queryFn: () => fetch('/api/destinations?active=true').then(r => r.json())
+    queryFn: () => apiClient('/api/destinations?active=true').then(r => r.json())
   });
 
   const { data: defaultDestination } = useQuery({
     queryKey: ['default-destination'],
-    queryFn: () => fetch('/api/destinations/default').then(r => r.json()).catch(() => null)
+    queryFn: () => apiClient('/api/destinations/default').then(r => r.json()).catch(() => null)
   });
 
   const selectedDestination = destinations?.find((d: DestinationConfig) => d.id === selectedDestinationId);

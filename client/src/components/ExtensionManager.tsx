@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiClient } from '../lib/api';
 
 interface Extension {
   id: string;
@@ -39,18 +40,18 @@ export function ExtensionManager() {
       if (filters.type) params.set('type', filters.type);
       if (filters.status) params.set('status', filters.status);
       
-      const res = await fetch(`/api/extensions?${params}`);
+      const res = await apiClient(`/api/extensions?${params}`);
       return res.json();
     }
   });
 
   const { data: stats } = useQuery({
     queryKey: ['extension-stats'],
-    queryFn: () => fetch('/api/extensions/stats').then(r => r.json())
+    queryFn: () => apiClient('/api/extensions/stats').then(r => r.json())
   });
 
   const syncExtensions = useMutation({
-    mutationFn: () => fetch('/api/extensions/sync', { method: 'POST' }).then(r => r.json()),
+    mutationFn: () => apiClient('/api/extensions/sync', { method: 'POST' }).then(r => r.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['extensions'] });
       queryClient.invalidateQueries({ queryKey: ['extension-stats'] });
@@ -58,7 +59,7 @@ export function ExtensionManager() {
   });
 
   const cleanupStuck = useMutation({
-    mutationFn: () => fetch('/api/extensions/cleanup', { method: 'POST' }).then(r => r.json()),
+    mutationFn: () => apiClient('/api/extensions/cleanup', { method: 'POST' }).then(r => r.json()),
     onSuccess: (data) => {
       alert(data.message);
       queryClient.invalidateQueries({ queryKey: ['extensions'] });
@@ -69,7 +70,7 @@ export function ExtensionManager() {
 
   const toggleExtension = useMutation({
     mutationFn: (ext: Extension) =>
-      fetch(`/api/extensions/${ext.id}`, {
+      apiClient(`/api/extensions/${ext.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabledForHunting: !ext.enabledForHunting })
@@ -81,7 +82,7 @@ export function ExtensionManager() {
 
   const bulkEnable = useMutation({
     mutationFn: (enabled: boolean) =>
-      fetch('/api/extensions/bulk-update', {
+      apiClient('/api/extensions/bulk-update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -97,7 +98,7 @@ export function ExtensionManager() {
 
   const savePool = useMutation({
     mutationFn: () =>
-      fetch('/api/extensions/pools', {
+      apiClient('/api/extensions/pools', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -122,7 +123,7 @@ export function ExtensionManager() {
 
   const enableAllForHunting = useMutation({
     mutationFn: (extensionIds: string[]) =>
-      fetch('/api/extensions/bulk-update', {
+      apiClient('/api/extensions/bulk-update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -137,7 +138,7 @@ export function ExtensionManager() {
 
   const disableAllForHunting = useMutation({
     mutationFn: (extensionIds: string[]) =>
-      fetch('/api/extensions/bulk-update', {
+      apiClient('/api/extensions/bulk-update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

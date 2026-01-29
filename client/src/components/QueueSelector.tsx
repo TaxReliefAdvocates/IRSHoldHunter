@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiClient } from '../lib/api';
 
 interface QueueConfig {
   id: string;
@@ -20,16 +21,16 @@ export function QueueSelector({ selectedQueueId, onSelect }: QueueSelectorProps)
 
   const { data: queues, isLoading } = useQuery({
     queryKey: ['queues'],
-    queryFn: () => fetch('/api/queues').then(r => r.json())
+    queryFn: () => apiClient('/api/queues').then(r => r.json())
   });
 
   const { data: defaultQueue } = useQuery({
     queryKey: ['default-queue'],
-    queryFn: () => fetch('/api/queues/default').then(r => r.json()).catch(() => null)
+    queryFn: () => apiClient('/api/queues/default').then(r => r.json()).catch(() => null)
   });
 
   const syncQueues = useMutation({
-    mutationFn: () => fetch('/api/queues/sync', { method: 'POST' }).then(r => r.json()),
+    mutationFn: () => apiClient('/api/queues/sync', { method: 'POST' }).then(r => r.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['queues'] });
       queryClient.invalidateQueries({ queryKey: ['default-queue'] });
