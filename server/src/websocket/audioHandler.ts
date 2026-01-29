@@ -26,7 +26,8 @@ interface StreamConnection {
   
   transferTriggered: boolean;
   lastEmitTime: number;
-  lastAudioEmit?: number; // Track last audio chunk emission
+  lastAudioEmit?: number;
+  lastAnalysisLog?: number; // Track last analysis log emission
 }
 
 export class AudioHandler {
@@ -131,6 +132,21 @@ export class AudioHandler {
     
     const timeSinceDtmf2 = dtmf2SentAt ? (Date.now() - dtmf2SentAt) / 1000 : 0;
     const callDuration = (Date.now() - callAnsweredAt) / 1000;
+    
+    // Log analysis activity every 5 seconds for debugging
+    const now = Date.now();
+    if (!connection.lastAnalysisLog || now - connection.lastAnalysisLog > 5000) {
+      connection.lastAnalysisLog = now;
+      await this.emitDetectionLog(callSid, {
+        type: 'status',
+        message: `🎙️ Analyzing audio: energy=${energy.toFixed(2)}, variance=${variance.toFixed(2)}`,
+        data: { 
+          callDuration: callDuration.toFixed(1), 
+          timeSinceDtmf2: timeSinceDtmf2.toFixed(1),
+          historySize: connection.analysisHistory.length 
+        }
+      });
+    }
     
     // LAYER 1: Voicemail detection
     if (callDuration < 25 && !connection.holdMusicDetected) {
