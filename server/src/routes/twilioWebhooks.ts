@@ -8,6 +8,35 @@ import logger from '../config/logger.js';
 const router = express.Router();
 const VoiceResponse = twilio.twiml.VoiceResponse;
 
+// Dial status callback - tells us what happened with the transfer
+router.post('/dial-status', async (req: Request, res: Response) => {
+  const { CallSid, DialCallStatus, DialCallSid, DialCallDuration } = req.body;
+  
+  logger.info(`📞 Dial Status for ${CallSid}:`, {
+    status: DialCallStatus,
+    dialledCallSid: DialCallSid,
+    duration: DialCallDuration
+  });
+  
+  // Continue the call or hang up based on status
+  res.type('text/xml');
+  res.send(`<?xml version="1.0" encoding="UTF-8"?>
+    <Response>
+      <Say>Transfer ${DialCallStatus}. Goodbye.</Say>
+      <Hangup/>
+    </Response>`);
+});
+
+// Dial callback - real-time status of the dialed leg
+router.post('/dial-callback', async (req: Request, res: Response) => {
+  const { CallSid, CallStatus, ParentCallSid } = req.body;
+  
+  logger.info(`🔔 Dial Callback - Parent: ${ParentCallSid}, Dialed: ${CallSid}, Status: ${CallStatus}`);
+  
+  res.sendStatus(200);
+});
+
+
 // Main call flow handler - IRS sequence
 router.post('/call-flow', async (req: Request, res: Response) => {
   const { CallSid } = req.body;
