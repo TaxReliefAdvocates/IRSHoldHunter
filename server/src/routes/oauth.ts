@@ -102,10 +102,12 @@ router.get('/callback', async (req: Request, res: Response) => {
     }
     
     // Redirect to frontend
-    res.redirect('http://localhost:5173?auth=success');
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    res.redirect(`${clientUrl}?auth=success`);
   } catch (error: any) {
     logger.error('❌ OAuth callback error:', error);
-    res.redirect('http://localhost:5173?auth=error');
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    res.redirect(`${clientUrl}?auth=error`);
   }
 });
 
