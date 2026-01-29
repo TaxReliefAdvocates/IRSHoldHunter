@@ -251,16 +251,12 @@ class RCService {
     }
   }
 
+  // Extension availability check removed - not needed for current flow
+  // Extensions are considered available if not in a currentJobId
+  // Real status checking was causing API rate limits
   async isExtensionAvailable(extensionId: string): Promise<boolean> {
-    try {
-      const presence = await this.getExtensionPresence(extensionId);
-      const activeCalls = await this.getActiveCallsForExtension(extensionId);
-      
-      return activeCalls.length === 0 && presence.telephonyStatus === 'NoCall';
-    } catch (error) {
-      logger.debug(`Could not check availability for extension ${extensionId}, assuming unavailable`);
-      return false;
-    }
+    // Just return true - availability is managed via Redis currentJobId field
+    return true;
   }
 }
 
