@@ -44,16 +44,13 @@ export const io = new Server(server, {
     methods: ['GET', 'POST'],
     credentials: true,
   },
-  // Optimize transports - prefer WebSocket
-  transports: ['websocket', 'polling'],
+  // Allow both transports, prefer WebSocket
+  transports: ['polling', 'websocket'],
+  // Allow upgrade to WebSocket after polling handshake
+  allowUpgrades: true,
   // Reduce ping interval to detect disconnects faster
   pingInterval: 25000,
   pingTimeout: 20000,
-  // Connection state recovery
-  connectionStateRecovery: {
-    maxDisconnectionDuration: 2 * 60 * 1000, // 2 minutes
-    skipMiddlewares: true,
-  },
   // Limit max payload size
   maxHttpBufferSize: 1e6, // 1 MB
 });

@@ -2,18 +2,20 @@
 > irs-hold-hunter-server@1.0.0 dev
 > tsx watch src/server.ts
 
-2026-01-29T02:08:12.899Z [[32minfo[39m]: ✅ Twilio calling service initialized 
-2026-01-29T02:08:12.900Z [[32minfo[39m]:    From: +18446607363 
-2026-01-29T02:08:12.900Z [[32minfo[39m]:    Webhook: https://431b895ae4bc.ngrok-free.app 
-2026-01-29T02:08:12.918Z [[32minfo[39m]: 🚀 Starting IRS Hold Hunter... 
-2026-01-29T02:08:12.918Z [[32minfo[39m]: 🔐 OAuth Mode - Login required via RingCentral 
-2026-01-29T02:08:12.924Z [[32minfo[39m]: ✅ Redis connected 
-2026-01-29T02:08:12.928Z [[32minfo[39m]: ✅ Found stored OAuth tokens - RingCentral authenticated 
-2026-01-29T02:08:12.928Z [[32minfo[39m]: ℹ️  RingCentral is used ONLY for queue transfers (Twilio handles outbound calls) 
-2026-01-29T02:08:12.928Z [[32minfo[39m]: ✅ Server running on port 3000 
-2026-01-29T02:08:12.929Z [[32minfo[39m]: 🔐 OAuth Login: http://localhost:3000/oauth/authorize 
-2026-01-29T02:08:12.929Z [[32minfo[39m]: 📞 Twilio Webhooks: https://431b895ae4bc.ngrok-free.app/webhooks/twilio/* 
-2026-01-29T02:08:12.929Z [[32minfo[39m]: 🎯 Frontend: http://localhost:5173 
-2026-01-29T02:08:12.929Z [[32minfo[39m]: 📊 Data retention: 24 hours 
-2026-01-29T02:08:14.612Z [[32minfo[39m]: 🔌 Client connected: bLbSlBvDmXWlyxEmAAAC 
-2026-01-29T02:08:14.939Z [[32minfo[39m]: 🔌 Client connected: wsiuwLD1yoGNN5JfAAAF 
+2026-01-29T02:10:53.111Z [[32minfo[39m]: ✅ Twilio calling service initialized 
+2026-01-29T02:10:53.112Z [[32minfo[39m]:    From: +18446607363 
+2026-01-29T02:10:53.112Z [[32minfo[39m]:    Webhook: https://431b895ae4bc.ngrok-free.app 
+2026-01-29T02:10:53.132Z [[32minfo[39m]: 🚀 Starting IRS Hold Hunter... 
+2026-01-29T02:10:53.132Z [[32minfo[39m]: 🔐 OAuth Mode - Login required via RingCentral 
+2026-01-29T02:10:53.138Z [[32minfo[39m]: ✅ Redis connected 
+2026-01-29T02:10:53.142Z [[32minfo[39m]: ✅ Found stored OAuth tokens - RingCentral authenticated 
+2026-01-29T02:10:53.142Z [[32minfo[39m]: ℹ️  RingCentral is used ONLY for queue transfers (Twilio handles outbound calls) 
+2026-01-29T02:10:53.143Z [[32minfo[39m]: ✅ Server running on port 3000 
+2026-01-29T02:10:53.143Z [[32minfo[39m]: 🔐 OAuth Login: http://localhost:3000/oauth/authorize 
+2026-01-29T02:10:53.144Z [[32minfo[39m]: 📞 Twilio Webhooks: https://431b895ae4bc.ngrok-free.app/webhooks/twilio/* 
+2026-01-29T02:10:53.144Z [[32minfo[39m]: 🎯 Frontend: http://localhost:5173 
+2026-01-29T02:10:53.144Z [[32minfo[39m]: 📊 Data retention: 24 hours 
+2026-01-29T02:10:53.288Z [[32minfo[39m]: 🔌 Client connected: 98B3qDuhL_-V8gjLAAAB 
+2026-01-29T02:10:54.425Z [[32minfo[39m]: 🔌 Client connected: Ny1v0ZkfziVt2YVHAAAD 
+2026-01-29T02:10:54.612Z [[32minfo[39m]: 🔌 Client connected: MJYoxH511dLKh0uiAAAF 
+2026-01-29T02:10:55.363Z [[32minfo[39m]: 🔌 Client connected: JSlIY9PwHn1Vw3v8AAAH 

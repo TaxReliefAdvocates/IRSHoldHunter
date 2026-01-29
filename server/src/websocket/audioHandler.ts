@@ -26,6 +26,7 @@ interface StreamConnection {
   
   transferTriggered: boolean;
   lastEmitTime: number;
+  lastAudioEmit?: number; // Track last audio chunk emission
 }
 
 export class AudioHandler {
@@ -87,16 +88,18 @@ export class AudioHandler {
     const audioChunk = Buffer.from(media.payload, 'base64');
     connection.audioBuffer.push(audioChunk);
     
-    // Forward audio to frontend for live listening
-    if (this.io) {
+    // Forward audio to frontend for live listening (THROTTLED to ~10/sec per call)
+    const now = Date.now();
+    if (this.io && (!connection.lastAudioEmit || now - connection.lastAudioEmit >= 100)) {
       const leg = await store.getCallLegByTwilioSid(connection.callSid);
       if (leg) {
         this.io.to(`job:${leg.jobId}`).emit('audio-chunk', {
           legId: leg.id,
           callSid: connection.callSid,
           audio: media.payload, // base64 encoded
-          timestamp: Date.now()
+          timestamp: now
         });
+        connection.lastAudioEmit = now;
       }
     }
     
@@ -104,7 +107,6 @@ export class AudioHandler {
       connection.audioBuffer.shift();
     }
     
-    const now = Date.now();
     const lastAnalysis = connection.analysisHistory[connection.analysisHistory.length - 1];
     const interval = liveAgentDetector.getAnalysisInterval();
     
