@@ -15,8 +15,9 @@ export function useSocket() {
     // Create singleton socket instance
     if (!socketInstance) {
       socketInstance = io(SOCKET_URL, {
-        // WebSocket only - no polling (faster, more reliable)
-        transports: ['websocket'],
+        // Allow both transports for better compatibility
+        transports: ['polling', 'websocket'],
+        upgrade: true,
         // Reconnection settings
         reconnection: true,
         reconnectionDelay: 1000,
@@ -27,7 +28,7 @@ export function useSocket() {
       });
 
       socketInstance.on('connect', () => {
-        console.log('✅ Socket connected via WebSocket');
+        console.log('✅ Socket connected');
         setIsConnected(true);
       });
 
