@@ -98,13 +98,16 @@ export class TwilioCallingService {
     }
   }
 
-  async transferToQueue(callSid: string, queuePhoneNumber: string): Promise<void> {
+  async transferToQueue(callSid: string, queuePhoneNumber: string, extensionNumber?: string): Promise<void> {
     if (!this.client) {
       throw new Error('Twilio not configured');
     }
     
     try {
-      logger.info(`🔄 Transferring ${callSid} to ${queuePhoneNumber}`);
+      logger.info(`🔄 Transferring ${callSid} to ${queuePhoneNumber}${extensionNumber ? ` ext ${extensionNumber}` : ''}`);
+      
+      // If we have extension but no direct number, use DTMF to dial extension
+      const sendDigits = extensionNumber ? `w${extensionNumber}#` : '';
       
       await this.client.calls(callSid).update({
         method: 'POST',
@@ -112,14 +115,14 @@ export class TwilioCallingService {
           <Response>
             <Say>Transferring to agent</Say>
             <Dial timeout="60" timeLimit="14400" callerId="${this.fromNumber}" action="${this.webhookBaseUrl}/webhooks/twilio/dial-status">
-              <Number statusCallback="${this.webhookBaseUrl}/webhooks/twilio/dial-callback" statusCallbackEvent="initiated ringing answered completed">${queuePhoneNumber}</Number>
+              <Number statusCallback="${this.webhookBaseUrl}/webhooks/twilio/dial-callback" statusCallbackEvent="initiated ringing answered completed" sendDigits="${sendDigits}">${queuePhoneNumber}</Number>
             </Dial>
             <Say>The transfer could not be completed. The call has ended.</Say>
             <Hangup/>
           </Response>`
       });
       
-      logger.info(`✅ Transfer TwiML sent - waiting for Dial status...`);
+      logger.info(`✅ Transfer TwiML sent${sendDigits ? ' (with extension digits)' : ''} - waiting for Dial status...`);
       
     } catch (error: any) {
       logger.error('❌ Transfer failed:', error.message);

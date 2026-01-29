@@ -216,26 +216,46 @@ router.post('/trigger-transfer/:callSid', async (req: Request, res: Response) =>
     }
     
     logger.info(`   Queue: "${queue.name}" (${queue.extensionNumber})`);
-    logger.info(`   Phone number: ${queue.phoneNumber || 'NONE'}`);
+    logger.info(`   Direct phone: ${queue.phoneNumber || 'NONE - will use extension dialing'}`);
     
-    if (!queue.phoneNumber) {
-      logger.error(`❌ Queue "${queue.name}" (Ext ${queue.extensionNumber}) has no direct phone number assigned`);
-      logger.error(`   To enable transfers, assign a direct line to this queue in RingCentral Admin`);
+    // Determine transfer method
+    let transferNumber: string;
+    let extensionNumber: string | undefined;
+    
+    if (queue.phoneNumber) {
+      // Queue has direct number - dial it directly
+      transferNumber = queue.phoneNumber;
+      logger.info(`🎯 Using direct number: ${transferNumber}`);
+    } else if (queue.extensionNumber) {
+      // No direct number - use RingCentral main number + extension
+      const rcMainNumber = process.env.RC_MAIN_NUMBER;
+      if (!rcMainNumber) {
+        logger.error(`❌ Queue has no direct number and RC_MAIN_NUMBER not configured`);
+        return res.status(400).json({ 
+          error: `Queue "${queue.name}" has no direct number. Add RC_MAIN_NUMBER to .env for extension dialing.`,
+          queueName: queue.name,
+          extensionNumber: queue.extensionNumber
+        });
+      }
+      transferNumber = rcMainNumber;
+      extensionNumber = queue.extensionNumber;
+      logger.info(`🎯 Using extension dialing: ${transferNumber} ext ${extensionNumber}`);
+    } else {
+      logger.error(`❌ Queue "${queue.name}" has no phone number or extension`);
       return res.status(400).json({ 
-        error: `Queue "${queue.name}" has no direct phone number. Please assign a direct line in RingCentral.`,
-        queueName: queue.name,
-        extensionNumber: queue.extensionNumber
+        error: `Queue "${queue.name}" has no phone number or extension configured.`,
+        queueName: queue.name
       });
     }
     
-    logger.info(`🎯 Initiating transfer to ${queue.phoneNumber}...`);
+    logger.info(`🎯 Initiating transfer...`);
     
     await store.updateCallLeg(leg.id, {
       status: 'LIVE',
       liveDetectedAt: new Date().toISOString()
     });
     
-    await twilioCallingService.transferToQueue(callSid, queue.phoneNumber);
+    await twilioCallingService.transferToQueue(callSid, transferNumber, extensionNumber);
     
     await store.updateJob(job.id, {
       status: 'TRANSFERRED',
