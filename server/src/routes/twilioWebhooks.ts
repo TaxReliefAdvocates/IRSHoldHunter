@@ -219,22 +219,28 @@ router.post('/trigger-transfer/:callSid', async (req: Request, res: Response) =>
     logger.info(`   Queue: "${queue.name}" (${queue.extensionNumber})`);
     logger.info(`   Cached phone: ${queue.phoneNumber || 'NONE - will fetch fresh'}`);
     
-    // ALWAYS fetch fresh from RingCentral (cache might be stale)
-    logger.info(`🔄 Fetching FRESH phone number from RingCentral...`);
-    let phoneNumber = '';
-    try {
-      const freshQueueDetails = await rcService.getQueueDetails(queue.id);
-      phoneNumber = freshQueueDetails.phoneNumber;
-      
-      if (phoneNumber) {
-        logger.info(`✅ Found phone number from fresh fetch: ${phoneNumber}`);
-        // Update cache
-        await store.saveQueue({ ...queue, phoneNumber });
-      } else {
-        logger.error(`❌ No phone number found in fresh fetch`);
+    // Check for manual override first
+    const manualQueuePhone = process.env.QUEUE_PHONE_OVERRIDE;
+    if (manualQueuePhone) {
+      logger.info(`✅ Using MANUAL override number: ${manualQueuePhone}`);
+      phoneNumber = manualQueuePhone;
+    } else {
+      // ALWAYS fetch fresh from RingCentral (cache might be stale)
+      logger.info(`🔄 Fetching FRESH phone number from RingCentral...`);
+      try {
+        const freshQueueDetails = await rcService.getQueueDetails(queue.id);
+        phoneNumber = freshQueueDetails.phoneNumber;
+        
+        if (phoneNumber) {
+          logger.info(`✅ Found phone number from fresh fetch: ${phoneNumber}`);
+          // Update cache
+          await store.saveQueue({ ...queue, phoneNumber });
+        } else {
+          logger.error(`❌ No phone number found in fresh fetch`);
+        }
+      } catch (error) {
+        logger.error(`Failed to fetch fresh queue details:`, error);
       }
-    } catch (error) {
-      logger.error(`Failed to fetch fresh queue details:`, error);
     }
     
     // Determine transfer method
