@@ -11,10 +11,17 @@ interface DialJobData {
 
 export const dialQueue = new Queue<DialJobData>(
   'dial-queue',
-  process.env.REDIS_URL || 'redis://localhost:6379'
+  process.env.REDIS_URL || 'redis://localhost:6379',
+  {
+    settings: {
+      maxStalledCount: 2,
+      stalledInterval: 30000,
+    }
+  }
 );
 
-dialQueue.process(async (job) => {
+// Process up to 10 jobs concurrently (for 50 lines)
+dialQueue.process(10, async (job) => {
   const { legId, jobId, destinationNumber } = job.data;
   
   try {
@@ -49,6 +56,14 @@ dialQueue.process(async (job) => {
 
 dialQueue.on('completed', (job) => {
   logger.info(`✅ [Queue] Dial job ${job.id} completed`);
+});
+
+dialQueue.on('active', (job) => {
+  logger.info(`⚡ [Queue] Processing dial job ${job.id} for leg ${job.data.legId}`);
+});
+
+dialQueue.on('waiting', (jobId) => {
+  logger.debug(`⏳ [Queue] Job ${jobId} is waiting`);
 });
 
 dialQueue.on('failed', async (job, err) => {
