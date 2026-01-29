@@ -14,6 +14,9 @@ export function LiveAudioPlayer({ jobId, legId, compact = false }: LiveAudioPlay
   const audioContextRef = useRef<AudioContext | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
+  const audioQueueRef = useRef<Float32Array[]>([]);
+  const isPlayingRef = useRef(false);
+  const nextStartTimeRef = useRef(0);
 
   useEffect(() => {
     if (!socket) return;
@@ -39,20 +42,13 @@ export function LiveAudioPlayer({ jobId, legId, compact = false }: LiveAudioPlay
         const targetSampleRate = audioContextRef.current.sampleRate;
         const resampledData = resample(pcmData, 8000, targetSampleRate);
         
-        // Create audio buffer at target sample rate
-        const audioBuffer = audioContextRef.current.createBuffer(
-          1, // mono
-          resampledData.length,
-          targetSampleRate
-        );
+        // Add to queue
+        audioQueueRef.current.push(resampledData);
         
-        audioBuffer.getChannelData(0).set(resampledData);
-
-        // Play the audio
-        const source = audioContextRef.current.createBufferSource();
-        source.buffer = audioBuffer;
-        source.connect(gainNodeRef.current!);
-        source.start();
+        // Start playback if not already playing
+        if (!isPlayingRef.current) {
+          playNextChunk();
+        }
 
         // Update audio level visualization
         if (analyserRef.current) {
@@ -64,6 +60,41 @@ export function LiveAudioPlayer({ jobId, legId, compact = false }: LiveAudioPlay
       } catch (error) {
         console.error('Audio playback error:', error);
       }
+    };
+
+    const playNextChunk = () => {
+      if (!audioContextRef.current || !gainNodeRef.current) return;
+      
+      const chunk = audioQueueRef.current.shift();
+      if (!chunk) {
+        isPlayingRef.current = false;
+        return;
+      }
+
+      isPlayingRef.current = true;
+      
+      const audioContext = audioContextRef.current;
+      const currentTime = audioContext.currentTime;
+      
+      // Schedule next chunk right after this one (no gaps)
+      const startTime = Math.max(currentTime, nextStartTimeRef.current);
+      const duration = chunk.length / audioContext.sampleRate;
+      nextStartTimeRef.current = startTime + duration;
+      
+      // Create audio buffer
+      const audioBuffer = audioContext.createBuffer(1, chunk.length, audioContext.sampleRate);
+      audioBuffer.getChannelData(0).set(chunk);
+
+      // Play the audio
+      const source = audioContext.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(gainNodeRef.current);
+      source.start(startTime);
+      
+      // Schedule next chunk
+      source.onended = () => {
+        playNextChunk();
+      };
     };
 
     socket.on('audio-chunk', handleAudioChunk);
@@ -88,6 +119,7 @@ export function LiveAudioPlayer({ jobId, legId, compact = false }: LiveAudioPlay
     audioContextRef.current = audioContext;
     gainNodeRef.current = gainNode;
     analyserRef.current = analyser;
+    nextStartTimeRef.current = audioContext.currentTime;
 
     setIsListening(true);
   };
@@ -99,6 +131,9 @@ export function LiveAudioPlayer({ jobId, legId, compact = false }: LiveAudioPlay
       gainNodeRef.current = null;
       analyserRef.current = null;
     }
+    audioQueueRef.current = [];
+    isPlayingRef.current = false;
+    nextStartTimeRef.current = 0;
     setIsListening(false);
     setAudioLevel(0);
   };
@@ -160,26 +195,30 @@ export function LiveAudioPlayer({ jobId, legId, compact = false }: LiveAudioPlay
   );
 }
 
-// Mulaw to linear PCM conversion
+// Mulaw to linear PCM conversion (ITU-T G.711)
+// Build decode table (done once at module load)
+const MULAW_DECODE_TABLE = (() => {
+  const table = new Int16Array(256);
+  for (let i = 0; i < 256; i++) {
+    const mulawByte = ~i;
+    const sign = (mulawByte & 0x80);
+    const exponent = (mulawByte >> 4) & 0x07;
+    const mantissa = mulawByte & 0x0F;
+    
+    let sample = ((mantissa << 3) + 0x84) << exponent;
+    if (sign !== 0) sample = -sample;
+    
+    table[i] = sample;
+  }
+  return table;
+})();
+
 function mulawToLinear(mulaw: Uint8Array): Float32Array {
   const linear = new Float32Array(mulaw.length);
-  const MULAW_BIAS = 0x84;
-  const MULAW_MAX = 0x1FFF;
-
+  
+  // Decode and normalize to -1.0 to 1.0
   for (let i = 0; i < mulaw.length; i++) {
-    let mulawByte = ~mulaw[i];
-    let sign = (mulawByte & 0x80) !== 0;
-    let exponent = (mulawByte >> 4) & 0x07;
-    let mantissa = mulawByte & 0x0F;
-    
-    let sample = mantissa << (exponent + 3);
-    sample += MULAW_BIAS;
-    sample <<= exponent;
-    
-    if (sign) sample = -sample;
-    
-    // Normalize to -1.0 to 1.0
-    linear[i] = sample / MULAW_MAX;
+    linear[i] = MULAW_DECODE_TABLE[mulaw[i]] / 32768.0;
   }
 
   return linear;

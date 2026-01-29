@@ -14,15 +14,29 @@ class ExtensionService {
       
       let syncedCount = 0;
       
-      // Add delay helper to avoid rate limits
-      const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-      
       for (const ext of data.records) {
         // Check if extension already exists
         const existing = await store.getExtension(ext.id);
         
-        // Skip device fetch - we don't actually need it since we're using phone numbers
-        // This was causing excessive API calls and rate limiting
+        // Fetch devices for this extension to get deviceId
+        let deviceId: string | undefined;
+        if (ext.type === 'User' && ext.status === 'Enabled') {
+          try {
+            const devicesResponse = await platform.get(`/restapi/v1.0/account/~/extension/${ext.id}/device`);
+            const devicesData: any = await devicesResponse.json();
+            // Use the first active device
+            const activeDevice = devicesData.records?.find((d: any) => 
+              d.status === 'Online' && d.useAsCommonPhone === false
+            ) || devicesData.records?.[0];
+            deviceId = activeDevice?.id;
+            
+            if (deviceId) {
+              logger.debug(`Found device ${deviceId} for extension ${ext.extensionNumber}`);
+            }
+          } catch (error) {
+            logger.debug(`No devices found for extension ${ext.extensionNumber}`);
+          }
+        }
         
         await store.updateExtension(ext.id, {
           id: ext.id,
@@ -31,7 +45,7 @@ class ExtensionService {
           department: ext.department || '',
           type: ext.type,
           status: ext.status,
-          deviceId: existing?.deviceId, // Preserve existing deviceId if any
+          deviceId, // Store the device ID
           enabledForHunting: existing?.enabledForHunting || false, // Preserve existing setting
           tags: existing?.tags || [],
           currentJobId: existing?.currentJobId,
@@ -39,11 +53,6 @@ class ExtensionService {
         });
         
         syncedCount++;
-        
-        // Small delay to avoid rate limits (every 10 extensions)
-        if (syncedCount % 10 === 0) {
-          await delay(100);
-        }
       }
       
       logger.info(`✅ Synced ${syncedCount} extensions from RingCentral`);
@@ -196,15 +205,8 @@ class ExtensionService {
     return stats;
   }
 
-  // Sync real-time extension status from RingCentral
-  // NOTE: Disabled to avoid rate limits - status checks happen on-demand during job start
-  async syncExtensionStatus(): Promise<void> {
-    logger.debug('⏭️  Skipping real-time status sync to avoid rate limits');
-    // This was causing excessive API calls. Status is now checked only when:
-    // 1. Starting a new job (JobService checks availability)
-    // 2. User manually syncs extensions
-    return;
-  }
+  // REMOVED: syncExtensionStatus() - was causing RingCentral API rate limiting
+  // We don't need real-time presence checks since Twilio handles all outbound calling
 
   // Clean up stuck extensions (extensions marked in-use but job is done)
   async cleanupStuckExtensions(): Promise<number> {

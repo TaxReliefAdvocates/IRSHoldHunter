@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import logger from '../config/logger.js';
 import destinationService from '../services/DestinationService.js';
 import { store, DestinationConfig } from '../storage/RedisStore.js';
@@ -6,7 +6,7 @@ import { store, DestinationConfig } from '../storage/RedisStore.js';
 const router = express.Router();
 
 // GET /api/destinations - List all destinations with filters
-router.get('/', async (req, res) => {
+router.get('/', async (req: Request, res: Response) => {
   try {
     const filters = {
       activeOnly: req.query.active === 'true',
@@ -161,7 +161,7 @@ router.delete('/:id/tags/:tag', async (req, res) => {
 });
 
 // DELETE /api/destinations/:id - Delete destination
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', async (req: Request, res: Response) => {
   try {
     await store.deleteDestination(req.params.id);
     res.json({ success: true, message: 'Destination deleted' });

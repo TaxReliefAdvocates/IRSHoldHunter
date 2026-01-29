@@ -17,15 +17,15 @@ class RingCentralSDK {
       });
 
       // Note: Event handlers are on platform(), not SDK instance
-      const platform = this.instance.platform();
+      const platform = this.instance!.platform();
       
       // Handle token refresh - save updated tokens to Redis
-      platform.on('refreshSuccess', async () => {
+      (platform as any).on('refreshSuccess', async () => {
         try {
           const authData = await platform.auth().data();
-          await store.setConfig('rc_access_token', authData.access_token);
-          await store.setConfig('rc_refresh_token', authData.refresh_token);
-          await store.setConfig('rc_token_expiry', authData.expires_in.toString());
+          await store.setConfig('rc_access_token', authData.access_token || '');
+          await store.setConfig('rc_refresh_token', authData.refresh_token || '');
+          await store.setConfig('rc_token_expiry', (authData.expires_in || 3600).toString());
           await store.setConfig('rc_token_created_at', Date.now().toString());
           logger.info('✅ RingCentral tokens auto-refreshed and saved');
         } catch (error) {
@@ -34,7 +34,7 @@ class RingCentralSDK {
       });
 
       // Handle token refresh errors
-      platform.on('refreshError', (error) => {
+      (platform as any).on('refreshError', (error: any) => {
         logger.error('❌ RingCentral token refresh failed - user needs to re-login', error);
         this.isAuthenticated = false;
       });
@@ -43,7 +43,7 @@ class RingCentralSDK {
       await this.restoreTokens();
     }
 
-    return this.instance;
+    return this.instance!;
   }
 
   private static async restoreTokens(): Promise<void> {
@@ -61,9 +61,9 @@ class RingCentralSDK {
         await platform.auth().setData({
           access_token: accessToken,
           refresh_token: refreshToken,
-          refresh_token_expires_in: 604800, // 7 days
+          refresh_token_expires_in: '604800', // 7 days
           token_type: 'bearer',
-          expires_in: 3600,
+          expires_in: '3600',
           expire_time: Date.now() + 3600000
         });
         
@@ -73,7 +73,7 @@ class RingCentralSDK {
         // Verify tokens work by making a test call
         try {
           const response = await platform.get('/restapi/v1.0/account/~/extension/~');
-          const extension = await response.json();
+          const extension: any = await response.json();
           logger.info(`✅ Authenticated as: ${extension.name} (Ext ${extension.extensionNumber})`);
           
           if (extension.permissions?.admin?.enabled) {

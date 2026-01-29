@@ -24,10 +24,11 @@ export interface Job {
 export interface CallLeg {
   id: string;
   jobId: string;
-  holdExtensionId: string;
+  holdExtensionId?: string; // Optional now (not needed for Twilio)
   ringOutId?: string; // For RingOut API
   telephonySessionId?: string;
   partyId?: string;
+  twilioCallSid?: string; // NEW: Twilio call identifier
   status: LegStatus;
   holdStartedAt?: string;
   liveDetectedAt?: string;
@@ -168,6 +169,15 @@ export class RedisStore {
       );
     }
     
+    // Update Twilio index if Twilio SID provided
+    if (updates.twilioCallSid) {
+      await this.redis.setex(
+        `twilio:${updates.twilioCallSid}`,
+        TTL_24H,
+        legId
+      );
+    }
+    
     logger.debug(`Leg ${legId} updated:`, updates);
   }
 
@@ -198,6 +208,34 @@ export class RedisStore {
         return leg;
       }
     }
+    return null;
+  }
+
+  async getCallLegByTwilioSid(twilioSid: string): Promise<CallLeg | null> {
+    // Try index first (fast)
+    const legId = await this.redis.get(`twilio:${twilioSid}`);
+    
+    if (legId) {
+      return await this.getCallLeg(legId);
+    }
+    
+    // Fallback: scan all legs
+    logger.debug(`Index miss for Twilio SID ${twilioSid}, scanning...`);
+    const keys = await this.redis.keys('leg:*');
+    
+    for (const key of keys) {
+      const data = await this.redis.get(key);
+      if (data) {
+        const leg = JSON.parse(data);
+        if (leg.twilioCallSid === twilioSid) {
+          // Create index for next time
+          await this.redis.setex(`twilio:${twilioSid}`, TTL_24H, leg.id);
+          logger.debug(`Found leg ${leg.id} via scan, indexed for future`);
+          return leg;
+        }
+      }
+    }
+    
     return null;
   }
 

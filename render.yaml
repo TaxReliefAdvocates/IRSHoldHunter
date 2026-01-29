@@ -7,8 +7,8 @@ services:
     region: oregon
     branch: main
     buildCommand: |
-      cd server && npm install && npm run build &&
-      cd ../client && npm install && npm run build
+      cd server && npm ci && npm run build &&
+      cd ../client && npm ci && npm run build
     startCommand: cd server && npm start
     envVars:
       # RingCentral Configuration
