@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { useSocket } from './useSocket';
+import { apiClient } from '../lib/api';
 
 interface CallLeg {
   id: string;
@@ -30,7 +31,7 @@ interface Job {
 }
 
 async function fetchJob(jobId: string): Promise<Job> {
-  const response = await fetch(`/api/jobs/${jobId}`);
+  const response = await apiClient(`/api/jobs/${jobId}`);
   if (!response.ok) {
     throw new Error('Failed to fetch job');
   }

@@ -7,6 +7,7 @@ import { QueueManagement } from './components/QueueManagement';
 import { Settings } from './components/Settings';
 import { Login } from './components/Login';
 import { useSocket } from './hooks/useSocket';
+import { apiClient } from './lib/api';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -25,12 +26,7 @@ function AppContent() {
   // Check authentication status
   const { data: authStatus, isLoading: authLoading } = useQuery({
     queryKey: ['auth-status'],
-    queryFn: () => fetch('/oauth/status', {
-      cache: 'no-store', // Prevent caching issues
-      headers: {
-        'Cache-Control': 'no-cache'
-      }
-    }).then(r => r.json()),
+    queryFn: () => apiClient('/oauth/status').then(r => r.json()),
     refetchInterval: 60000, // Check every minute
   });
 
@@ -44,7 +40,7 @@ function AppContent() {
 
   const handleLogout = async () => {
     try {
-      await fetch('/oauth/logout', { method: 'POST' });
+      await apiClient('/oauth/logout', { method: 'POST' });
       window.location.reload();
     } catch (error) {
       console.error('Logout failed:', error);
