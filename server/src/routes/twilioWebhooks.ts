@@ -45,38 +45,7 @@ router.post('/call-flow', async (req: Request, res: Response) => {
   
   logger.info(`📞 Call flow started for ${CallSid}`);
   
-  // Get DTMF settings from Redis (or fall back to env vars)
-  const settings = await store.getSystemSettings();
-  const firstDelay = settings.dtmf1Delay;
-  const firstDigit = settings.dtmf1Digit;
-  const secondDelay = settings.dtmf2Delay;
-  const secondDigit = settings.dtmf2Digit;
-  const totalDelay = firstDelay + secondDelay;
-  
-  logger.info(`⚙️  DTMF Settings: '${firstDigit}' at ${firstDelay}s, '${secondDigit}' at ${totalDelay}s total`);
-  
-  // STEP 1: Wait for IRS greeting, then press first digit
-  setTimeout(async () => {
-    try {
-      logger.info(`⏰ ${firstDelay}s elapsed, pressing '${firstDigit}' on ${CallSid}`);
-      await twilioCallingService.sendDTMF(CallSid, firstDigit);
-      
-      const leg = await store.getCallLegByTwilioSid(CallSid);
-      if (leg) {
-        await store.updateCallLeg(leg.id, {
-          lastEventAt: new Date().toISOString(),
-          lastEventType: 'dtmf_1_sent'
-        });
-        
-        // Notify audio handler for logging
-        await audioHandler.notifyDtmf1Sent(CallSid);
-      }
-    } catch (error) {
-      logger.error(`Failed to send DTMF 1:`, error);
-    }
-  }, firstDelay * 1000);
-  
-  // STEP 2: Start audio streaming immediately
+  // STEP 1: Start audio streaming immediately
   const webhookBase = process.env.WEBHOOK_BASE_URL!.replace('https://', '').replace('http://', '');
   const wsUrl = `wss://${webhookBase}/websocket/audio`;
   
@@ -89,37 +58,69 @@ router.post('/call-flow', async (req: Request, res: Response) => {
     track: 'inbound_track'
   });
   
-  // STEP 3: Keep call alive
+  // STEP 2: Keep call alive
   twiml.pause({ length: 3600 });
   
-  // STEP 4: Schedule second DTMF
-  setTimeout(async () => {
-    try {
-      logger.info(`⏰ ${totalDelay}s elapsed (${secondDelay}s after DTMF 1), pressing '${secondDigit}' on ${CallSid}`);
-      await twilioCallingService.sendDTMF(CallSid, secondDigit);
-      
-      const leg = await store.getCallLegByTwilioSid(CallSid);
-      if (leg) {
-        await store.updateCallLeg(leg.id, {
-          lastEventAt: new Date().toISOString(),
-          lastEventType: 'dtmf_2_sent'
-        });
-        
-        // Notify audio handler
-        audioHandler.notifyDtmf2Sent(CallSid);
-      }
-    } catch (error) {
-      logger.error(`Failed to send DTMF 2:`, error);
-    }
-  }, totalDelay * 1000);
-  
-  // Send TwiML response immediately (don't block on DB updates)
+  // Send TwiML response immediately (don't block on Redis/DB)
   res.type('text/xml');
   res.send(twiml.toString());
   
-  // Update status in background after response is sent
+  // STEP 3: Get settings and schedule DTMF in background
   setImmediate(async () => {
     try {
+      // Get DTMF settings from Redis (or fall back to env vars)
+      const settings = await store.getSystemSettings();
+      const firstDelay = settings.dtmf1Delay;
+      const firstDigit = settings.dtmf1Digit;
+      const secondDelay = settings.dtmf2Delay;
+      const secondDigit = settings.dtmf2Digit;
+      const totalDelay = firstDelay + secondDelay;
+      
+      logger.info(`⚙️  DTMF Settings: '${firstDigit}' at ${firstDelay}s, '${secondDigit}' at ${totalDelay}s total`);
+      
+      // Schedule first DTMF
+      setTimeout(async () => {
+        try {
+          logger.info(`⏰ ${firstDelay}s elapsed, pressing '${firstDigit}' on ${CallSid}`);
+          await twilioCallingService.sendDTMF(CallSid, firstDigit);
+          
+          const leg = await store.getCallLegByTwilioSid(CallSid);
+          if (leg) {
+            await store.updateCallLeg(leg.id, {
+              lastEventAt: new Date().toISOString(),
+              lastEventType: 'dtmf_1_sent'
+            });
+            
+            // Notify audio handler for logging
+            await audioHandler.notifyDtmf1Sent(CallSid);
+          }
+        } catch (error) {
+          logger.error(`Failed to send DTMF 1:`, error);
+        }
+      }, firstDelay * 1000);
+      
+      // Schedule second DTMF
+      setTimeout(async () => {
+        try {
+          logger.info(`⏰ ${totalDelay}s elapsed (${secondDelay}s after DTMF 1), pressing '${secondDigit}' on ${CallSid}`);
+          await twilioCallingService.sendDTMF(CallSid, secondDigit);
+          
+          const leg = await store.getCallLegByTwilioSid(CallSid);
+          if (leg) {
+            await store.updateCallLeg(leg.id, {
+              lastEventAt: new Date().toISOString(),
+              lastEventType: 'dtmf_2_sent'
+            });
+            
+            // Notify audio handler
+            audioHandler.notifyDtmf2Sent(CallSid);
+          }
+        } catch (error) {
+          logger.error(`Failed to send DTMF 2:`, error);
+        }
+      }, totalDelay * 1000);
+      
+      // Update status to ANSWERED
       const leg = await store.getCallLegByTwilioSid(CallSid);
       if (leg) {
         await store.updateCallLeg(leg.id, {
@@ -139,7 +140,7 @@ router.post('/call-flow', async (req: Request, res: Response) => {
         }
       }
     } catch (error) {
-      logger.error('Failed to update call-flow status:', error);
+      logger.error('Failed to setup call flow:', error);
     }
   });
 });
