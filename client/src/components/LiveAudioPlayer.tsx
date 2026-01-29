@@ -14,9 +14,6 @@ export function LiveAudioPlayer({ jobId, legId, compact = false }: LiveAudioPlay
   const audioContextRef = useRef<AudioContext | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
-  const audioQueueRef = useRef<Float32Array[]>([]);
-  const isPlayingRef = useRef(false);
-  const nextStartTimeRef = useRef(0);
 
   useEffect(() => {
     if (!socket) return;
@@ -25,7 +22,7 @@ export function LiveAudioPlayer({ jobId, legId, compact = false }: LiveAudioPlay
       // Filter by leg if specified
       if (legId && data.legId !== legId) return;
       
-      if (!isListening || !audioContextRef.current) return;
+      if (!isListening || !audioContextRef.current || !gainNodeRef.current) return;
 
       try {
         // Decode base64 audio (mulaw 8kHz from Twilio)
@@ -38,17 +35,20 @@ export function LiveAudioPlayer({ jobId, legId, compact = false }: LiveAudioPlay
         // Convert mulaw to linear PCM
         const pcmData = mulawToLinear(audioArray);
         
-        // Resample from 8kHz to browser's sample rate (usually 48kHz)
-        const targetSampleRate = audioContextRef.current.sampleRate;
-        const resampledData = resample(pcmData, 8000, targetSampleRate);
+        // Create audio buffer at 8kHz (no resampling - let browser handle it)
+        const audioBuffer = audioContextRef.current.createBuffer(
+          1, // mono
+          pcmData.length,
+          8000 // Keep at 8kHz - browser will resample automatically
+        );
         
-        // Add to queue
-        audioQueueRef.current.push(resampledData);
-        
-        // Start playback if not already playing
-        if (!isPlayingRef.current) {
-          playNextChunk();
-        }
+        audioBuffer.getChannelData(0).set(pcmData);
+
+        // Play immediately
+        const source = audioContextRef.current.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(gainNodeRef.current);
+        source.start(0); // Play ASAP
 
         // Update audio level visualization
         if (analyserRef.current) {
@@ -60,41 +60,6 @@ export function LiveAudioPlayer({ jobId, legId, compact = false }: LiveAudioPlay
       } catch (error) {
         console.error('Audio playback error:', error);
       }
-    };
-
-    const playNextChunk = () => {
-      if (!audioContextRef.current || !gainNodeRef.current) return;
-      
-      const chunk = audioQueueRef.current.shift();
-      if (!chunk) {
-        isPlayingRef.current = false;
-        return;
-      }
-
-      isPlayingRef.current = true;
-      
-      const audioContext = audioContextRef.current;
-      const currentTime = audioContext.currentTime;
-      
-      // Schedule next chunk right after this one (no gaps)
-      const startTime = Math.max(currentTime, nextStartTimeRef.current);
-      const duration = chunk.length / audioContext.sampleRate;
-      nextStartTimeRef.current = startTime + duration;
-      
-      // Create audio buffer
-      const audioBuffer = audioContext.createBuffer(1, chunk.length, audioContext.sampleRate);
-      audioBuffer.getChannelData(0).set(chunk);
-
-      // Play the audio
-      const source = audioContext.createBufferSource();
-      source.buffer = audioBuffer;
-      source.connect(gainNodeRef.current);
-      source.start(startTime);
-      
-      // Schedule next chunk
-      source.onended = () => {
-        playNextChunk();
-      };
     };
 
     socket.on('audio-chunk', handleAudioChunk);
@@ -110,7 +75,7 @@ export function LiveAudioPlayer({ jobId, legId, compact = false }: LiveAudioPlay
     const gainNode = audioContext.createGain();
     const analyser = audioContext.createAnalyser();
     
-    gainNode.gain.value = 2.0; // Boost volume 2x
+    gainNode.gain.value = 3.0; // Boost volume 3x for better clarity
     analyser.fftSize = 256;
     
     gainNode.connect(analyser);
@@ -119,7 +84,6 @@ export function LiveAudioPlayer({ jobId, legId, compact = false }: LiveAudioPlay
     audioContextRef.current = audioContext;
     gainNodeRef.current = gainNode;
     analyserRef.current = analyser;
-    nextStartTimeRef.current = audioContext.currentTime;
 
     setIsListening(true);
   };
@@ -131,9 +95,6 @@ export function LiveAudioPlayer({ jobId, legId, compact = false }: LiveAudioPlay
       gainNodeRef.current = null;
       analyserRef.current = null;
     }
-    audioQueueRef.current = [];
-    isPlayingRef.current = false;
-    nextStartTimeRef.current = 0;
     setIsListening(false);
     setAudioLevel(0);
   };
@@ -224,23 +185,3 @@ function mulawToLinear(mulaw: Uint8Array): Float32Array {
   return linear;
 }
 
-// Simple linear resampler
-function resample(input: Float32Array, inputRate: number, outputRate: number): Float32Array {
-  if (inputRate === outputRate) return input;
-  
-  const ratio = inputRate / outputRate;
-  const outputLength = Math.round(input.length / ratio);
-  const output = new Float32Array(outputLength);
-  
-  for (let i = 0; i < outputLength; i++) {
-    const srcIndex = i * ratio;
-    const srcIndexFloor = Math.floor(srcIndex);
-    const srcIndexCeil = Math.min(srcIndexFloor + 1, input.length - 1);
-    const frac = srcIndex - srcIndexFloor;
-    
-    // Linear interpolation
-    output[i] = input[srcIndexFloor] * (1 - frac) + input[srcIndexCeil] * frac;
-  }
-  
-  return output;
-}

@@ -88,9 +88,9 @@ export class AudioHandler {
     const audioChunk = Buffer.from(media.payload, 'base64');
     connection.audioBuffer.push(audioChunk);
     
-    // Forward audio to frontend for live listening (THROTTLED to ~10/sec per call)
+    // Forward audio to frontend for live listening (THROTTLED to ~20/sec per call for better quality)
     const now = Date.now();
-    if (this.io && (!connection.lastAudioEmit || now - connection.lastAudioEmit >= 100)) {
+    if (this.io && (!connection.lastAudioEmit || now - connection.lastAudioEmit >= 50)) {
       const leg = await store.getCallLegByTwilioSid(connection.callSid);
       if (leg) {
         this.io.to(`job:${leg.jobId}`).emit('audio-chunk', {
