@@ -69,13 +69,9 @@ export class LiveAgentDetector {
   analyzeForLiveAgent(
     analysisHistory: AudioAnalysis[],
     holdMusicStoppedAt: number | undefined,
-    currentConfidence: number
+    currentConfidence: number,
+    timeSinceDtmf2: number // NEW: Add this to detect quick answers
   ): { detected: boolean; confidence: number } {
-    if (!holdMusicStoppedAt) {
-      return { detected: false, confidence: currentConfidence };
-    }
-    
-    const silenceDuration = (Date.now() - holdMusicStoppedAt) / 1000;
     const recent = analysisHistory.slice(-8);
     
     if (recent.length < 8) {
@@ -83,6 +79,42 @@ export class LiveAgentDetector {
     }
     
     let confidence = currentConfidence;
+    
+    // ALTERNATIVE PATH: Quick answer without hold music
+    // If someone answers immediately (15-60s after DTMF2), detect them!
+    if (!holdMusicStoppedAt && timeSinceDtmf2 > 15 && timeSinceDtmf2 < 60) {
+      logger.info(`🚀 Quick answer path - detecting without hold music`);
+      
+      // Check for human speech patterns
+      const speechCount = recent.filter(a => 
+        a.energy > this.ENERGY_SPEECH_MIN && 
+        a.variance > this.VARIANCE_SPEECH_MIN
+      ).length;
+      
+      const avgEnergy = recent.reduce((sum, a) => sum + a.energy, 0) / recent.length;
+      const energyStdDev = Math.sqrt(
+        recent.reduce((sum, a) => sum + Math.pow(a.energy - avgEnergy, 2), 0) / recent.length
+      );
+      
+      // Strong speech = high confidence
+      if (speechCount >= 5 && energyStdDev > 40) {
+        confidence = 0.85; // Very confident - clear speech
+        logger.info(`🎯 QUICK ANSWER: Strong speech detected (${speechCount}/8, variance=${energyStdDev.toFixed(0)})`);
+      } else if (speechCount >= 3 && avgEnergy > 150) {
+        confidence = 0.65; // Moderate confidence
+        logger.info(`🎯 QUICK ANSWER: Moderate speech detected (${speechCount}/8, energy=${avgEnergy.toFixed(0)})`);
+      }
+      
+      const detected = confidence >= this.CONFIDENCE_THRESHOLD;
+      return { detected, confidence };
+    }
+    
+    // ORIGINAL PATH: After hold music stops
+    if (!holdMusicStoppedAt) {
+      return { detected: false, confidence: currentConfidence };
+    }
+    
+    const silenceDuration = (Date.now() - holdMusicStoppedAt) / 1000;
     
     // STRATEGY 1: Speech pattern detection
     const speechCount = recent.filter(a => 
