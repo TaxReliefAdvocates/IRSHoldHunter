@@ -96,7 +96,6 @@ services:
   - type: web
     name: irs-hold-hunter
     runtime: static
-    region: oregon
     buildCommand: cd client && npm install && npm run build
     staticPublishPath: ./client/dist
     envVars:
