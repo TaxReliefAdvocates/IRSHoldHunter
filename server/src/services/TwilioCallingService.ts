@@ -55,9 +55,19 @@ export class TwilioCallingService {
       
       logger.info(`   📋 Call params: ${JSON.stringify(callParams, null, 2)}`);
       
-      const call = await this.client.calls.create(callParams);
+      logger.info(`🔄 Creating Twilio call...`);
+      const call = await this.client.calls.create(callParams as any);
       
       logger.info(`✅ Call initiated: ${call.sid}`);
+      logger.info(`   Status: ${call.status}`);
+      logger.info(`   Direction: ${call.direction}`);
+      logger.info(`   To: ${call.to}`);
+      logger.info(`   From: ${call.from}`);
+      
+      // CRITICAL: Log if Twilio is using a different URL
+      if (call.uri) {
+        logger.info(`   URI: ${call.uri}`);
+      }
       
       return { callSid: call.sid };
       

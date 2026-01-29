@@ -28,6 +28,19 @@ router.post('/dial-status', async (req: Request, res: Response) => {
     </Response>`);
 });
 
+// Test endpoint - verify Twilio can reach the server
+router.all('/test', async (req: Request, res: Response) => {
+  logger.info(`🧪 TEST endpoint hit! Method: ${req.method}`);
+  logger.info(`📋 Headers: ${JSON.stringify(req.headers)}`);
+  logger.info(`📋 Body: ${JSON.stringify(req.body)}`);
+  
+  const twiml = new VoiceResponse();
+  twiml.say('Test endpoint reached successfully');
+  
+  res.type('text/xml');
+  res.send(twiml.toString());
+});
+
 // Dial callback - real-time status of the dialed leg
 router.post('/dial-callback', async (req: Request, res: Response) => {
   const { CallSid, CallStatus, ParentCallSid } = req.body;
