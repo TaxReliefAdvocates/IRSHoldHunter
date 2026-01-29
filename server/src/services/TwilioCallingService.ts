@@ -46,7 +46,7 @@ export class TwilioCallingService {
         to: toNumber,
         url: callFlowUrl,
         statusCallback: statusCallbackUrl,
-        statusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed'],
+        statusCallbackEvent: ['initiated', 'ringing', 'in-progress', 'completed'],
         statusCallbackMethod: 'POST',
         // NO machineDetection - our AI handles everything!
         timeout: 60,
