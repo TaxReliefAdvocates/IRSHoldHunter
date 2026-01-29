@@ -194,31 +194,39 @@ class RCService {
     try {
       const platform = await RingCentralSDK.getPlatform();
       
-      logger.debug(`📋 Fetching details for queue: ${queueId}`);
+      logger.info(`📋 Fetching queue details for: ${queueId}`);
       
-      const response = await platform.get(`/restapi/v1.0/account/~/extension/${queueId}`);
-      const data: any = await response.json();
+      // Get from call-queues endpoint first (has more complete data)
+      const queueResponse = await platform.get(`/restapi/v1.0/account/~/call-queues/${queueId}`);
+      const queueData: any = await queueResponse.json();
+      
+      // Also get extension details for additional info
+      const extResponse = await platform.get(`/restapi/v1.0/account/~/extension/${queueId}`);
+      const extData: any = await extResponse.json();
       
       // Try multiple sources for phone number
-      const phoneNumber = data.contact?.businessPhone || 
-                         data.contact?.phoneNumbers?.[0]?.phoneNumber ||
-                         data.phoneNumbers?.[0]?.phoneNumber ||
+      const phoneNumber = extData.contact?.businessPhone || 
+                         extData.contact?.phoneNumbers?.[0]?.phoneNumber ||
+                         extData.phoneNumbers?.[0]?.phoneNumber ||
+                         queueData.phoneNumber ||
                          '';
       
       const queueDetails = {
-        id: data.id,
-        extensionNumber: data.extensionNumber,
-        name: data.name,
+        id: queueData.id || extData.id,
+        extensionNumber: queueData.extensionNumber || extData.extensionNumber,
+        name: queueData.name || extData.name,
         phoneNumber,
-        email: data.contact?.email || '',
-        status: data.status
+        email: extData.contact?.email || '',
+        status: queueData.status || extData.status
       };
       
       // Log what we found (use info level so it's visible)
       logger.info(`📋 Queue "${queueDetails.name}" sync:`, {
         extensionNumber: queueDetails.extensionNumber,
         phoneNumber: queueDetails.phoneNumber || '❌ NO PHONE NUMBER',
-        hasDirectLine: !!queueDetails.phoneNumber
+        hasDirectLine: !!queueDetails.phoneNumber,
+        queueEndpoint: !!queueData.phoneNumber,
+        extEndpoint: !!(extData.contact?.businessPhone)
       });
       
       return queueDetails;
