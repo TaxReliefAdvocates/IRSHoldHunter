@@ -219,22 +219,22 @@ router.post('/trigger-transfer/:callSid', async (req: Request, res: Response) =>
     logger.info(`   Queue: "${queue.name}" (${queue.extensionNumber})`);
     logger.info(`   Cached phone: ${queue.phoneNumber || 'NONE - will fetch fresh'}`);
     
-    // If queue has no phone number cached, fetch it LIVE from RingCentral
-    let phoneNumber = queue.phoneNumber;
-    if (!phoneNumber) {
-      logger.info(`🔄 No cached phone number - fetching fresh from RingCentral...`);
-      try {
-        const freshQueueDetails = await rcService.getQueueDetails(queue.id);
-        phoneNumber = freshQueueDetails.phoneNumber;
-        
-        if (phoneNumber) {
-          logger.info(`✅ Found phone number from fresh fetch: ${phoneNumber}`);
-          // Update cache for next time
-          await store.saveQueue({ ...queue, phoneNumber });
-        }
-      } catch (error) {
-        logger.error(`Failed to fetch fresh queue details:`, error);
+    // ALWAYS fetch fresh from RingCentral (cache might be stale)
+    logger.info(`🔄 Fetching FRESH phone number from RingCentral...`);
+    let phoneNumber = '';
+    try {
+      const freshQueueDetails = await rcService.getQueueDetails(queue.id);
+      phoneNumber = freshQueueDetails.phoneNumber;
+      
+      if (phoneNumber) {
+        logger.info(`✅ Found phone number from fresh fetch: ${phoneNumber}`);
+        // Update cache
+        await store.saveQueue({ ...queue, phoneNumber });
+      } else {
+        logger.error(`❌ No phone number found in fresh fetch`);
       }
+    } catch (error) {
+      logger.error(`Failed to fetch fresh queue details:`, error);
     }
     
     // Determine transfer method
