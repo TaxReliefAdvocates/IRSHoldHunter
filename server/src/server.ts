@@ -14,6 +14,7 @@ import extensionsRouter from './routes/extensions.js';
 import queuesRouter from './routes/queues.js';
 import destinationsRouter from './routes/destinations.js';
 import oauthRouter from './routes/oauth.js';
+import healthRouter from './routes/health.js';
 import destinationService from './services/DestinationService.js';
 import { store } from './storage/RedisStore.js';
 import { audioHandler } from './websocket/audioHandler.js';
@@ -75,6 +76,7 @@ app.use('/webhooks/twilio', twilioWebhooksRouter);
 app.use('/api/extensions', extensionsRouter);
 app.use('/api/queues', queuesRouter);
 app.use('/api/destinations', destinationsRouter);
+app.use('/', healthRouter); // Health check for Render
 
 // WebSocket endpoint for Twilio audio streaming
 (app as any).ws('/websocket/audio', (ws: any, req: any) => {

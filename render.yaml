@@ -1,47 +1,117 @@
 services:
-  # Web Service (Backend + Frontend)
+  # Backend API Server
   - type: web
-    name: irs-hold-hunter
+    name: irs-hold-hunter-api
     runtime: node
-    plan: free
     region: oregon
-    branch: main
-    buildCommand: |
-      cd server && npm ci && npm run build &&
-      cd ../client && npm ci && npm run build
+    plan: starter
+    buildCommand: cd server && npm install && npm run build
     startCommand: cd server && npm start
     envVars:
-      # RingCentral Configuration
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: LOG_LEVEL
+        value: info
+      
+      # RingCentral OAuth
       - key: RC_SERVER_URL
         value: https://platform.ringcentral.com
       - key: RC_CLIENT_ID
         sync: false
       - key: RC_CLIENT_SECRET
         sync: false
-      - key: RC_JWT_TOKEN
+      
+      # Twilio
+      - key: TWILIO_ACCOUNT_SID
         sync: false
-
-      # System Configuration
-      - key: IRS_NUMBER
-        value: +18008291040
-      - key: QUEUE_E164
-        value: +18885551234
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_PHONE_NUMBER
+        sync: false
+      
+      # Deepgram Speech Recognition
+      - key: DEEPGRAM_API_KEY
+        sync: false
+      - key: ENABLE_SPEECH_RECOGNITION
+        value: true
+      
+      # IRS Configuration
+      - key: IRS_PHONE_NUMBER
+        value: +18668604259
+      - key: IRS_FIRST_DTMF
+        value: 1
+      - key: IRS_FIRST_DTMF_DELAY_SECONDS
+        value: 15
+      - key: IRS_SECOND_DTMF
+        value: 2
+      - key: IRS_SECOND_DTMF_DELAY_SECONDS
+        value: 45
+      
+      # AI Detection Settings
+      - key: AI_DETECTION_ENABLED
+        value: true
+      - key: AI_AUTO_TRANSFER_CONFIDENCE
+        value: 0.60
+      - key: AI_ANALYSIS_INTERVAL_MS
+        value: 250
+      - key: AI_MIN_SILENCE_BEFORE_AGENT
+        value: 0.8
+      
+      # Audio Thresholds
+      - key: AUDIO_ENERGY_SILENT
+        value: 80
+      - key: AUDIO_ENERGY_SPEECH_MIN
+        value: 100
+      - key: AUDIO_VARIANCE_SPEECH_MIN
+        value: 60
+      - key: AUDIO_VARIANCE_MUSIC_MAX
+        value: 60
+      
+      # System Config (will be set from Render URL)
+      - key: BASE_URL
+        value: https://irs-hold-hunter-api.onrender.com
       - key: WEBHOOK_BASE_URL
-        sync: false
-
-      # Redis Connection (manually set this to your existing Redis URL)
-      - key: REDIS_URL
-        sync: false
-
-      # Server Configuration
-      - key: PORT
-        value: 10000
-      - key: NODE_ENV
-        value: production
-
-      # Client URL (for CORS)
+        value: https://irs-hold-hunter-api.onrender.com
       - key: CLIENT_URL
+        value: https://irs-hold-hunter.onrender.com
+      - key: DATA_RETENTION_HOURS
+        value: 24
+      
+      # Redis (using Render Redis)
+      - key: REDIS_URL
         fromService:
-          type: web
-          name: irs-hold-hunter
-          property: host
+          name: irs-hold-hunter-redis
+          type: redis
+          property: connectionString
+      
+      # RingCentral Queue
+      - key: QUEUE_E164
+        sync: false
+    
+    healthCheckPath: /health
+
+  # Frontend (React/Vite)
+  - type: web
+    name: irs-hold-hunter
+    runtime: static
+    region: oregon
+    buildCommand: cd client && npm install && npm run build
+    staticPublishPath: ./client/dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://irs-hold-hunter-api.onrender.com
+    
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+  # Redis Database
+  - type: redis
+    name: irs-hold-hunter-redis
+    region: oregon
+    plan: starter
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []
