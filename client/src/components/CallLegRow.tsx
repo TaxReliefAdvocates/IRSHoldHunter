@@ -33,6 +33,15 @@ interface AIDetectionStatus {
   timestamp: number;
 }
 
+interface LogEntry {
+  timestamp: string;
+  callSid: string;
+  legId: string;
+  type: 'detection' | 'dtmf' | 'status' | 'transfer';
+  message: string;
+  data?: any;
+}
+
 function formatTimestamp(timestamp: string | null): string {
   if (!timestamp) return '-';
   const date = new Date(timestamp);
@@ -55,6 +64,8 @@ export function CallLegRow({ leg, jobId, isWinner, index }: CallLegRowProps) {
   const queryClient = useQueryClient();
   const { socket } = useSocket();
   const [aiStatus, setAiStatus] = useState<AIDetectionStatus | null>(null);
+  const [showLogs, setShowLogs] = useState(false);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
 
   // Listen for AI detection updates via Socket.io
   useEffect(() => {
@@ -66,10 +77,18 @@ export function CallLegRow({ leg, jobId, isWinner, index }: CallLegRowProps) {
       }
     };
     
+    const handleDetectionLog = (log: LogEntry) => {
+      if (log.legId === leg.id) {
+        setLogs(prev => [...prev.slice(-20), log]); // Keep last 20 logs per leg
+      }
+    };
+    
     socket.on('ai-detection', handleAIDetection);
+    socket.on('detection-log', handleDetectionLog);
     
     return () => {
       socket.off('ai-detection', handleAIDetection);
+      socket.off('detection-log', handleDetectionLog);
     };
   }, [socket, leg.id]);
 
@@ -89,8 +108,39 @@ export function CallLegRow({ leg, jobId, isWinner, index }: CallLegRowProps) {
     leg.twilioCallSid &&
     !manualTransfer.isPending;
 
+  const getLogColor = (type: string) => {
+    switch (type) {
+      case 'detection':
+        return 'bg-blue-50 border-blue-200';
+      case 'dtmf':
+        return 'bg-purple-50 border-purple-200';
+      case 'status':
+        return 'bg-gray-50 border-gray-200';
+      case 'transfer':
+        return 'bg-green-50 border-green-200';
+      default:
+        return 'bg-gray-50 border-gray-200';
+    }
+  };
+
+  const getLogIcon = (type: string) => {
+    switch (type) {
+      case 'detection':
+        return '🔍';
+      case 'dtmf':
+        return '📱';
+      case 'status':
+        return '📊';
+      case 'transfer':
+        return '🚀';
+      default:
+        return '📝';
+    }
+  };
+
   return (
-    <tr className={isWinner ? 'bg-yellow-50 border-l-4 border-l-yellow-500' : 'border-b hover:bg-gray-50'}>
+    <>
+      <tr className={isWinner ? 'bg-yellow-50 border-l-4 border-l-yellow-500' : 'border-b hover:bg-gray-50'}>
       {/* Leg Number */}
       <td className="px-4 py-3 text-sm text-gray-900 font-medium">
         {index + 1}
@@ -185,6 +235,19 @@ export function CallLegRow({ leg, jobId, isWinner, index }: CallLegRowProps) {
       {/* Actions */}
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
+          {/* Show Logs button */}
+          <button
+            onClick={() => setShowLogs(!showLogs)}
+            className={`text-xs px-2 py-1 rounded-md font-medium transition-all ${
+              logs.length > 0 
+                ? 'bg-blue-100 hover:bg-blue-200 text-blue-700' 
+                : 'bg-gray-100 text-gray-500'
+            }`}
+            title={`View AI detection logs for this call (${logs.length} events)`}
+          >
+            📊 {logs.length > 0 ? `${logs.length}` : 'Logs'}
+          </button>
+          
           {/* Listen to this leg */}
           {leg.status === 'ANSWERED' && leg.twilioCallSid && (
             <div className="flex-shrink-0">
@@ -220,5 +283,59 @@ export function CallLegRow({ leg, jobId, isWinner, index }: CallLegRowProps) {
         </div>
       </td>
     </tr>
+    
+    {/* Expandable Logs Row */}
+    {showLogs && (
+      <tr>
+        <td colSpan={8} className="px-4 py-4 bg-gray-50">
+          <div className="max-w-4xl">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-semibold text-gray-900">
+                🤖 AI Detection Logs for Call #{index + 1}
+              </h4>
+              <button
+                onClick={() => setLogs([])}
+                className="text-xs px-2 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded"
+              >
+                Clear
+              </button>
+            </div>
+            
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {logs.length === 0 ? (
+                <div className="text-center py-4 text-gray-500 text-sm">
+                  No logs yet. Waiting for AI detection events...
+                </div>
+              ) : (
+                logs.map((log, i) => (
+                  <div
+                    key={i}
+                    className={`p-2 rounded border ${getLogColor(log.type)}`}
+                  >
+                    <div className="flex items-start gap-2">
+                      <span className="text-base">{getLogIcon(log.type)}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-xs font-mono text-gray-500">
+                            {new Date(log.timestamp).toLocaleTimeString()}
+                          </span>
+                        </div>
+                        <p className="text-xs font-medium">{log.message}</p>
+                        {log.data && (
+                          <pre className="text-xs mt-1 p-1 bg-black/5 rounded overflow-x-auto">
+                            {JSON.stringify(log.data, null, 2)}
+                          </pre>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </td>
+      </tr>
+    )}
+  </>
   );
 }

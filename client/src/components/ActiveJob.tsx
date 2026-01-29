@@ -93,9 +93,6 @@ export function ActiveJob({ jobId, onNewJob }: ActiveJobProps) {
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Live Audio & Transcription</h3>
           <LiveAudioPlayer jobId={job.id} />
         </div>
-
-        {/* AI Detection Logs */}
-        <LiveDetectionLogs jobId={job.id} />
       </div>
 
       {/* Call Legs Table */}
