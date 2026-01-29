@@ -204,6 +204,15 @@ class RCService {
       const extResponse = await platform.get(`/restapi/v1.0/account/~/extension/${queueId}`);
       const extData: any = await extResponse.json();
       
+      // Log FULL response to find the phone number
+      logger.info(`📞 Queue API response for ${queueData.name}:`, {
+        queueData_keys: Object.keys(queueData),
+        queueData_phoneNumber: queueData.phoneNumber,
+        extData_contact: extData.contact,
+        extData_phoneNumbers: extData.phoneNumbers,
+        extData_keys: Object.keys(extData)
+      });
+      
       // Try multiple sources for phone number
       const phoneNumber = extData.contact?.businessPhone || 
                          extData.contact?.phoneNumbers?.[0]?.phoneNumber ||
