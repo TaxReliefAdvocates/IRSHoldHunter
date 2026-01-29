@@ -220,21 +220,33 @@ class RCService {
       
       // 1. Try phone-number endpoint first (most reliable)
       if (phoneNumbers.length > 0) {
-        // Look for primary phone number or CallQueue type first
+        // Log ALL numbers to debug
+        logger.info(`📋 ALL ${phoneNumbers.length} numbers:`, phoneNumbers.map((p: any) => 
+          `${p.phoneNumber} (${p.usageType}${p.primary ? ', primary' : ''})`
+        ));
+        
+        // Priority search strategy:
+        // 1. Look for CallQueue usage type (most reliable)
+        // 2. Look for primary number
+        // 3. Look for specific area code (949) if user configured it
+        // 4. Fallback to DirectNumber or first available
+        
+        const queueTypeNumber = phoneNumbers.find((p: any) => p.usageType === 'CallQueue');
         const primaryNumber = phoneNumbers.find((p: any) => p.primary === true);
-        const queueNumber = phoneNumbers.find((p: any) => p.usageType === 'CallQueue');
+        const number949 = phoneNumbers.find((p: any) => p.phoneNumber.includes('+1949') || p.phoneNumber.includes('949'));
         const directNumber = phoneNumbers.find((p: any) => p.usageType === 'DirectNumber');
         
-        // Priority: primary > CallQueue > DirectNumber > first available
-        const selectedNumber = primaryNumber || queueNumber || directNumber || phoneNumbers[0];
+        // Priority: CallQueue > 949 area code > primary > DirectNumber > first
+        const selectedNumber = queueTypeNumber || number949 || primaryNumber || directNumber || phoneNumbers[0];
         phoneNumber = selectedNumber.phoneNumber;
         
-        logger.info(`✅ Found phone number: ${phoneNumber} (type: ${selectedNumber.usageType}, primary: ${!!selectedNumber.primary})`);
-        
-        // Log all available numbers for debugging
-        if (phoneNumbers.length > 1) {
-          logger.info(`📋 Available numbers (${phoneNumbers.length}): ${phoneNumbers.slice(0, 5).map((p: any) => `${p.phoneNumber} (${p.usageType}${p.primary ? ', primary' : ''})`).join(', ')}${phoneNumbers.length > 5 ? '...' : ''}`);
-        }
+        logger.info(`✅ Selected: ${phoneNumber} (type: ${selectedNumber.usageType}, primary: ${!!selectedNumber.primary}, reason: ${
+          queueTypeNumber ? 'CallQueue type' : 
+          number949 ? '949 area code match' : 
+          primaryNumber ? 'Primary flag' : 
+          directNumber ? 'DirectNumber type' : 
+          'First available'
+        })`);
       }
       
       // 2. Fallback to other sources
