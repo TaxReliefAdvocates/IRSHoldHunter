@@ -336,24 +336,8 @@ export class AudioHandler {
         });
       }
       
-      // Hang up other legs (staggered)
-      const allLegs = await store.getJobLegs(job.id);
-      const otherLegs = allLegs.filter((l: any) => l.id !== leg.id && l.twilioCallSid);
-      
-      logger.info(`🧹 Hanging up ${otherLegs.length} losing calls`);
-      
-      for (const otherLeg of otherLegs) {
-        const delay = Math.floor(Math.random() * 10000) + 5000;
-        setTimeout(async () => {
-          if (otherLeg.twilioCallSid) {
-            await twilioCallingService.hangUp(otherLeg.twilioCallSid);
-            await store.updateCallLeg(otherLeg.id, {
-              status: 'ENDED',
-              endedAt: new Date().toISOString()
-            });
-          }
-        }, delay);
-      }
+      // 🔥 DO NOT hang up other legs - user wants to transfer ALL live agents!
+      logger.info(`✅ Call transferred - other calls can continue to detect live agents`);
       
     } catch (error) {
       logger.error('Transfer failed:', error);

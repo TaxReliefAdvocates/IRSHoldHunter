@@ -189,21 +189,8 @@ router.post('/trigger-transfer/:callSid', async (req: Request, res: Response) =>
       winningLegId: leg.id
     });
     
-    // Hang up other legs
-    const allLegs = await store.getJobLegs(job.id);
-    const otherLegs = allLegs.filter((l: any) => l.id !== leg.id && l.twilioCallSid);
-    
-    await Promise.allSettled(
-      otherLegs.map(async (otherLeg: any) => {
-        if (otherLeg.twilioCallSid) {
-          await twilioCallingService.hangUp(otherLeg.twilioCallSid);
-          await store.updateCallLeg(otherLeg.id, {
-            status: 'ENDED',
-            endedAt: new Date().toISOString()
-          });
-        }
-      })
-    );
+    // 🔥 DO NOT hang up other legs - user wants to transfer ALL live agents!
+    logger.info(`✅ Manual transfer complete - other calls can continue`);
     
     res.json({ success: true });
     

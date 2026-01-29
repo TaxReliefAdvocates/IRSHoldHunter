@@ -111,7 +111,7 @@ export class TwilioCallingService {
         twiml: `<?xml version="1.0" encoding="UTF-8"?>
           <Response>
             <Say>Transferring to agent</Say>
-            <Dial timeout="60" timeLimit="14400">
+            <Dial timeout="60" timeLimit="14400" callerId="${this.fromNumber}">
               <Number>${queuePhoneNumber}</Number>
             </Dial>
             <Say>The call has ended. Goodbye.</Say>
