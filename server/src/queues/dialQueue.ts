@@ -25,8 +25,9 @@ export const dialQueue = new Queue<DialJobData>(
   }
 );
 
-// Process up to 5 jobs concurrently (rate limited by limiter above)
-dialQueue.process(5, async (job) => {
+// Process up to 50 jobs concurrently (rate limited by limiter to 2/sec)
+// This allows queueing many calls that will dial at 2/sec
+dialQueue.process(50, async (job) => {
   const { legId, jobId, destinationNumber } = job.data;
   
   try {
@@ -72,7 +73,7 @@ dialQueue.on('waiting', (jobId) => {
 });
 
 // Log queue initialization
-logger.info('📞 Dial queue processor initialized (5 workers, 2 calls/sec limit)');
+logger.info('📞 Dial queue processor initialized (50 workers, 2 calls/sec rate limit)');
 
 // Log queue stats every 5 seconds for debugging
 setInterval(async () => {
