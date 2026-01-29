@@ -73,36 +73,8 @@ router.post('/cleanup', async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/extensions/sync-status - Sync real-time status from RingCentral
-// Rate limiting: prevent syncing more than once every 5 seconds
-let lastSyncTime = 0;
-const SYNC_COOLDOWN_MS = 5000;
-
-router.post('/sync-status', async (req: Request, res: Response) => {
-  try {
-    const now = Date.now();
-    const timeSinceLastSync = now - lastSyncTime;
-    
-    if (timeSinceLastSync < SYNC_COOLDOWN_MS) {
-      const waitTime = Math.ceil((SYNC_COOLDOWN_MS - timeSinceLastSync) / 1000);
-      return res.status(429).json({ 
-        error: `Rate limited. Please wait ${waitTime} seconds before syncing again.`,
-        retryAfter: waitTime
-      });
-    }
-    
-    lastSyncTime = now;
-    await extensionService.syncExtensionStatus();
-    
-    res.json({ 
-      success: true, 
-      message: 'Extension status synced from RingCentral' 
-    });
-  } catch (error: any) {
-    logger.error('Failed to sync extension status:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
+// Removed: sync-status endpoint (was causing RingCentral API rate limiting)
+// We don't need real-time presence checks since Twilio handles all outbound calling
 
 // GET /api/extensions/:id - Get single extension
 router.get('/:id', async (req: Request, res: Response) => {

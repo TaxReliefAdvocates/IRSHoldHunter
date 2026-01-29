@@ -205,38 +205,8 @@ class ExtensionService {
     return stats;
   }
 
-  // Sync real-time extension status from RingCentral
-  async syncExtensionStatus(): Promise<void> {
-    const extensions = await store.getAllExtensions();
-    
-    logger.info('🔄 Syncing real-time extension status from RingCentral...');
-    
-    let synced = 0;
-    let failed = 0;
-    
-    for (const ext of extensions) {
-      try {
-        // Check real RingCentral status
-        const isAvailable = await rcService.isExtensionAvailable(ext.id);
-        const presence = await rcService.getExtensionPresence(ext.id);
-        
-        // Update Redis with actual status
-        await store.updateExtension(ext.id, {
-          rcPresenceStatus: presence.presenceStatus,
-          rcTelephonyStatus: presence.telephonyStatus,
-          isActuallyAvailable: isAvailable,
-          lastStatusCheck: new Date().toISOString()
-        });
-        
-        synced++;
-      } catch (error: any) {
-        failed++;
-        logger.debug(`Failed to check status for ext ${ext.extensionNumber}: ${error.message}`);
-      }
-    }
-    
-    logger.info(`✅ Extension status sync complete: ${synced} synced, ${failed} failed`);
-  }
+  // REMOVED: syncExtensionStatus() - was causing RingCentral API rate limiting
+  // We don't need real-time presence checks since Twilio handles all outbound calling
 
   // Clean up stuck extensions (extensions marked in-use but job is done)
   async cleanupStuckExtensions(): Promise<number> {
