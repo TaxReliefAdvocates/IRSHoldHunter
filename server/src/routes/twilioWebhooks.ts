@@ -45,6 +45,26 @@ router.post('/call-flow', async (req: Request, res: Response) => {
   
   logger.info(`📞 Call flow started for ${CallSid}`);
   
+  // Update status to ANSWERED when call-flow webhook fires
+  const leg = await store.getCallLegByTwilioSid(CallSid);
+  if (leg) {
+    await store.updateCallLeg(leg.id, {
+      status: 'ANSWERED',
+      holdStartedAt: new Date().toISOString(),
+      lastEventAt: new Date().toISOString(),
+      lastEventType: 'call-flow-started'
+    });
+    
+    // Emit socket update
+    const io = (req.app as any).get('io');
+    if (io) {
+      io.to(`job:${leg.jobId}`).emit('leg-update', {
+        legId: leg.id,
+        status: 'ANSWERED'
+      });
+    }
+  }
+  
   // STEP 1: Wait for IRS greeting (15 seconds), then press '1'
   const firstDelay = parseInt(process.env.IRS_FIRST_DTMF_DELAY_SECONDS || '15');
   const firstDigit = process.env.IRS_FIRST_DTMF || '1';
