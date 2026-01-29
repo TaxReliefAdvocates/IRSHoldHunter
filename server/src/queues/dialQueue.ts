@@ -1,12 +1,13 @@
 import Queue from 'bull';
 import logger from '../config/logger.js';
+import rcService from '../services/RCService.js';
 import { store } from '../storage/RedisStore.js';
-import { twilioCallingService } from '../services/TwilioCallingService.js';
 
 interface DialJobData {
   legId: string;
-  jobId: string;
-  destinationNumber: string;
+  extensionId: string;
+  deviceId?: string; // Device ID for outbound calling
+  irsNumber: string;
 }
 
 export const dialQueue = new Queue<DialJobData>(
@@ -15,27 +16,28 @@ export const dialQueue = new Queue<DialJobData>(
 );
 
 dialQueue.process(async (job) => {
-  const { legId, jobId, destinationNumber } = job.data;
+  const { legId, extensionId, irsNumber } = job.data;
   
   try {
-    logger.info(`🎯 [Twilio Queue] Starting call to ${destinationNumber}...`);
+    logger.info(`🎯 [Queue] Starting Call-Out from extension ${extensionId} to ${irsNumber}...`);
     
-    // Use Twilio to initiate the call
-    const { callSid } = await twilioCallingService.initiateCall(
-      destinationNumber,
-      { legId, jobId }
+    // Use Call-Out API - with SuperAdmin JWT this should work!
+    const { sessionId, partyId } = await rcService.initiatePlaceCall(
+      extensionId,
+      irsNumber
     );
     
-    logger.info(`✅ [Twilio Queue] Call initiated: ${callSid}`);
+    logger.info(`✅ [Queue] Call-Out initiated: leg ${legId}, session ${sessionId}, party ${partyId}`);
     
-    // Update leg with Twilio call SID
+    // Update leg with session info
     await store.updateCallLeg(legId, {
-      twilioCallSid: callSid,
-      status: 'DIALING',
+      telephonySessionId: sessionId,
+      partyId,
+      status: 'RINGING',
     });
     
   } catch (error) {
-    logger.error(`❌ [Twilio Queue] Failed to dial leg ${legId}:`, error);
+    logger.error(`❌ [Queue] Failed to dial leg ${legId}:`, error);
     
     // Mark leg as failed
     await store.updateCallLeg(legId, {
@@ -71,7 +73,7 @@ dialQueue.on('failed', async (job, err) => {
     );
     
     if (allFailed && allLegs.length > 0) {
-      logger.warn(`⚠️  All ${allLegs.length} legs failed for job ${jobId} - auto-failing job`);
+      logger.warn(`⚠️  All ${allLegs.length} legs failed for job ${jobId} - auto-failing job and releasing extensions`);
       
       // Update job status to FAILED
       await store.updateJob(jobId, {
@@ -79,7 +81,12 @@ dialQueue.on('failed', async (job, err) => {
         stoppedAt: new Date().toISOString()
       });
       
-      logger.info(`✅ Job ${jobId} auto-failed (Twilio - no extensions to release)`);
+      // Release all extensions
+      const extensionIds = allLegs.map(l => l.holdExtensionId);
+      const extensionService = await import('../services/ExtensionService.js').then(m => m.default);
+      await extensionService.releaseExtensions(extensionIds);
+      
+      logger.info(`✅ Job ${jobId} auto-failed and ${extensionIds.length} extensions released`);
     }
   } catch (error) {
     logger.error('Error in dialQueue failed handler:', error);

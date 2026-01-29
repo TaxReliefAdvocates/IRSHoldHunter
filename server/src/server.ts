@@ -1,6 +1,5 @@
 import 'dotenv/config';
 import express, { Request, Response } from 'express';
-import expressWs from 'express-ws';
 import cors from 'cors';
 import http from 'http';
 import path from 'path';
@@ -8,24 +7,15 @@ import { fileURLToPath } from 'url';
 import { Server } from 'socket.io';
 import logger from './config/logger.js';
 import rcService from './services/RCService.js';
+import extensionService from './services/ExtensionService.js';
 import jobsRouter from './routes/jobs.js';
-import twilioWebhooksRouter from './routes/twilioWebhooks.js';
+import webhooksRouter from './routes/webhooks.js';
 import extensionsRouter from './routes/extensions.js';
 import queuesRouter from './routes/queues.js';
 import destinationsRouter from './routes/destinations.js';
 import oauthRouter from './routes/oauth.js';
 import destinationService from './services/DestinationService.js';
 import { store } from './storage/RedisStore.js';
-import { audioHandler } from './websocket/audioHandler.js';
-
-// ===== TWILIO-ONLY MODE =====
-// RingCentral is ONLY used for:
-// 1. OAuth authentication
-// 2. Fetching call queues for transfer destinations
-// 3. Receiving transferred calls
-//
-// NO background polling, NO webhooks, NO extension syncing!
-// =========================
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,32 +24,13 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const server = http.createServer(app);
 
-// Initialize WebSocket support - MUST pass the server instance!
-const wsInstance = expressWs(app as any, server as any);
-
-// Initialize Socket.io with optimized settings
+// Initialize Socket.io
 export const io = new Server(server, {
   cors: {
     origin: process.env.CLIENT_URL || 'http://localhost:5173',
     methods: ['GET', 'POST'],
-    credentials: true,
   },
-  // Allow both transports, prefer WebSocket
-  transports: ['polling', 'websocket'],
-  // Allow upgrade to WebSocket after polling handshake
-  allowUpgrades: true,
-  // Reduce ping interval to detect disconnects faster
-  pingInterval: 25000,
-  pingTimeout: 20000,
-  // Limit max payload size
-  maxHttpBufferSize: 1e6, // 1 MB
 });
-
-// Make io available to audio handler
-audioHandler.setIO(io);
-
-// Make io available to routes
-app.set('io', io);
 
 // Middleware
 app.use(express.json());
@@ -72,31 +43,10 @@ app.use(cors({
 // Routes
 app.use('/oauth', oauthRouter);
 app.use('/api/jobs', jobsRouter);
-app.use('/webhooks/twilio', twilioWebhooksRouter);
+app.use('/api/webhooks', webhooksRouter);
 app.use('/api/extensions', extensionsRouter);
 app.use('/api/queues', queuesRouter);
 app.use('/api/destinations', destinationsRouter);
-
-// WebSocket endpoint for Twilio audio streaming
-(app as any).ws('/websocket/audio', (ws: any, req: any) => {
-  const clientIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-  logger.info(`🎵 Audio WebSocket connection attempt from ${clientIp}`);
-  logger.info(`   Headers: ${JSON.stringify(req.headers)}`);
-  
-  ws.on('open', () => {
-    logger.info('🎵 WebSocket connection OPENED');
-  });
-  
-  ws.on('error', (error: any) => {
-    logger.error(`❌ WebSocket error: ${error.message}`);
-  });
-  
-  ws.on('close', (code: number, reason: string) => {
-    logger.info(`🎵 WebSocket closed - Code: ${code}, Reason: ${reason || 'none'}`);
-  });
-  
-  audioHandler.handleConnection(ws);
-});
 
 // Health check
 app.get('/health', (req: Request, res: Response) => {
@@ -143,6 +93,68 @@ io.on('connection', (socket) => {
   });
 });
 
+// Webhook subscription management
+async function ensureWebhookSubscription() {
+  try {
+    const webhookUrl = `${process.env.WEBHOOK_BASE_URL}/api/webhooks/ringcentral`;
+    
+    logger.info(`📡 Checking webhook subscription for: ${webhookUrl}`);
+    
+    // Check existing subscriptions
+    const subscriptions = await rcService.listSubscriptions();
+    const activeWebhook = subscriptions.find(
+      (sub: any) => sub.deliveryMode?.address === webhookUrl && sub.status === 'Active'
+    );
+    
+    if (activeWebhook) {
+      logger.info(`✅ Active webhook subscription found: ${activeWebhook.id}`);
+      await store.setConfig('webhook_subscription_id', activeWebhook.id);
+      return;
+    }
+    
+    // Create new subscription
+    logger.info('📡 Creating new webhook subscription...');
+    const subscriptionId = await rcService.createWebhookSubscription(webhookUrl);
+    
+    // Store subscription ID
+    await store.setConfig('webhook_subscription_id', subscriptionId);
+    
+    logger.info(`✅ Webhook subscription created: ${subscriptionId}`);
+  } catch (error) {
+    logger.error('❌ Failed to ensure webhook subscription:', error);
+    logger.warn('⚠️  App will continue, but webhooks may not work without subscription');
+  }
+}
+
+// Subscription renewal cron (every 24 hours)
+async function startSubscriptionRenewal() {
+  setInterval(async () => {
+    try {
+      const subscriptionId = await store.getConfig('webhook_subscription_id');
+      
+      if (subscriptionId) {
+        await rcService.renewSubscription(subscriptionId);
+        logger.info('✅ Webhook subscription renewed');
+      }
+    } catch (error) {
+      logger.error('❌ Failed to renew webhook subscription:', error);
+    }
+  }, 24 * 60 * 60 * 1000); // 24 hours
+}
+
+// Background job to sync extension status periodically
+function startStatusSync() {
+  // Disabled to avoid RC rate limits - can be manually triggered via API
+  // setInterval(async () => {
+  //   try {
+  //     await extensionService.syncExtensionStatus();
+  //   } catch (error) {
+  //     logger.debug('Background status sync failed:', error);
+  //   }
+  // }, 60000); // 60 seconds
+  logger.info('ℹ️  Automatic status sync disabled (use manual cleanup button)');
+}
+
 // Startup
 async function start() {
   try {
@@ -159,20 +171,46 @@ async function start() {
     const jwtToken = process.env.RC_JWT_TOKEN;
     
     if (accessToken) {
-      logger.info('✅ Found stored OAuth tokens - RingCentral authenticated');
-      logger.info('ℹ️  RingCentral is used ONLY for queue transfers (Twilio handles outbound calls)');
+      logger.info('✅ Found stored OAuth tokens - attempting to restore session...');
+      
+      try {
+        // Run startup tasks that require auth
+        logger.info('🧹 Running startup cleanup...');
+        await extensionService.cleanupStuckExtensions();
+        
+        // Ensure webhook subscription
+        await ensureWebhookSubscription();
+        
+        // Start subscription renewal
+        startSubscriptionRenewal();
+      } catch (error) {
+        logger.warn('⚠️  Startup tasks failed - tokens may be expired. User should re-login.');
+      }
     } else if (jwtToken) {
       logger.info('💡 JWT fallback available - user can skip OAuth for testing');
-      logger.info('ℹ️  RingCentral is used ONLY for queue transfers (Twilio handles outbound calls)');
+      
+      try {
+        // Run startup tasks with JWT
+        logger.info('🧹 Running startup cleanup...');
+        await extensionService.cleanupStuckExtensions();
+        
+        await ensureWebhookSubscription();
+        startSubscriptionRenewal();
+      } catch (error) {
+        logger.warn('⚠️  Startup tasks failed with JWT');
+      }
     } else {
       logger.info('ℹ️  No authentication found - user needs to login at: http://localhost:3000/oauth/authorize');
     }
+    
+    // Start periodic status sync
+    startStatusSync();
     
     // Start server
     server.listen(port, () => {
       logger.info(`✅ Server running on port ${port}`);
       logger.info(`🔐 OAuth Login: http://localhost:${port}/oauth/authorize`);
-      logger.info(`📞 Twilio Webhooks: ${process.env.WEBHOOK_BASE_URL}/webhooks/twilio/*`);
+      logger.info(`📡 Webhook endpoint: ${process.env.WEBHOOK_BASE_URL}/api/webhooks/ringcentral`);
       logger.info(`🎯 Frontend: ${process.env.CLIENT_URL}`);
       logger.info(`📊 Data retention: ${process.env.DATA_RETENTION_HOURS || 24} hours`);
     });

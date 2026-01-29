@@ -66,6 +66,13 @@ export function ExtensionManager() {
     }
   });
 
+  const syncStatus = useMutation({
+    mutationFn: () => fetch('/api/extensions/sync-status', { method: 'POST' }).then(r => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['extensions'] });
+      queryClient.invalidateQueries({ queryKey: ['extension-stats'] });
+    }
+  });
 
   const toggleExtension = useMutation({
     mutationFn: (ext: Extension) =>
@@ -164,6 +171,13 @@ export function ExtensionManager() {
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-3xl font-bold">Extension Management</h1>
           <div className="flex gap-2">
+            <button
+              onClick={() => syncStatus.mutate()}
+              disabled={syncStatus.isPending}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
+            >
+              {syncStatus.isPending ? 'Syncing...' : '🔄 Sync Real-Time Status'}
+            </button>
             <button
               onClick={() => cleanupStuck.mutate()}
               disabled={cleanupStuck.isPending}

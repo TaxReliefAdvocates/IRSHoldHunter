@@ -15,19 +15,10 @@ export function useSocket() {
     // Create singleton socket instance
     if (!socketInstance) {
       socketInstance = io(SOCKET_URL, {
-        // Allow both transports but prefer WebSocket
-        transports: ['polling', 'websocket'],
-        // Immediately upgrade to WebSocket after initial connection
-        upgrade: true,
-        // Don't try to reconnect with polling if WebSocket fails
-        rememberUpgrade: true,
-        // Reconnection settings
         reconnection: true,
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
         reconnectionAttempts: Infinity,
-        // Connection timeout
-        timeout: 20000,
       });
 
       socketInstance.on('connect', () => {
