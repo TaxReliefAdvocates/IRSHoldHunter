@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 
-// In production (same origin), connect to current host. In dev, use localhost.
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 
-  (import.meta.env.PROD ? window.location.origin : 'http://localhost:3000');
+// Connect to API server (not the static site origin)
+const SOCKET_URL = import.meta.env.VITE_API_URL || 
+  (import.meta.env.PROD ? 'https://irs-hold-hunter-api.onrender.com' : 'http://localhost:3000');
 
 let socketInstance: Socket | null = null;
 
