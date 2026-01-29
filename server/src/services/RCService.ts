@@ -199,14 +199,29 @@ class RCService {
       const response = await platform.get(`/restapi/v1.0/account/~/extension/${queueId}`);
       const data: any = await response.json();
       
-      return {
+      // Try multiple sources for phone number
+      const phoneNumber = data.contact?.businessPhone || 
+                         data.contact?.phoneNumbers?.[0]?.phoneNumber ||
+                         data.phoneNumbers?.[0]?.phoneNumber ||
+                         '';
+      
+      const queueDetails = {
         id: data.id,
         extensionNumber: data.extensionNumber,
         name: data.name,
-        phoneNumber: data.contact?.businessPhone || '',
+        phoneNumber,
         email: data.contact?.email || '',
         status: data.status
       };
+      
+      // Log what we found (use info level so it's visible)
+      logger.info(`📋 Queue "${queueDetails.name}" sync:`, {
+        extensionNumber: queueDetails.extensionNumber,
+        phoneNumber: queueDetails.phoneNumber || '❌ NO PHONE NUMBER',
+        hasDirectLine: !!queueDetails.phoneNumber
+      });
+      
+      return queueDetails;
     } catch (error) {
       logger.error(`❌ Failed to get queue details for ${queueId}:`, error);
       throw error;
