@@ -106,6 +106,7 @@ export class AudioHandler {
       connection.audioBuffer.shift();
     }
     
+    const now = Date.now();
     const lastAnalysis = connection.analysisHistory[connection.analysisHistory.length - 1];
     const interval = liveAgentDetector.getAnalysisInterval();
     
