@@ -1,0 +1,368 @@
+
+> irs-hold-hunter-server@1.0.0 dev
+> tsx watch src/server.ts
+
+2026-01-29T00:00:27.900Z [[32minfo[39m]: ✅ Twilio calling service initialized 
+2026-01-29T00:00:27.901Z [[32minfo[39m]:    From: +18446607363 
+2026-01-29T00:00:27.901Z [[32minfo[39m]:    Webhook: https://26e6a5a0f8ce.ngrok-free.app 
+2026-01-29T00:00:27.903Z [[32minfo[39m]: Live detection initialized with 4 strategies 
+2026-01-29T00:00:27.906Z [[32minfo[39m]: 🚀 Starting IRS Hold Hunter... 
+2026-01-29T00:00:27.906Z [[32minfo[39m]: 🔐 OAuth Mode - Login required via RingCentral 
+2026-01-29T00:00:27.911Z [[32minfo[39m]: ✅ Redis connected 
+2026-01-29T00:00:27.914Z [[32minfo[39m]: ℹ️  No authentication found - user needs to login at: http://localhost:3000/oauth/authorize 
+2026-01-29T00:00:27.914Z [[32minfo[39m]: ℹ️  Automatic status sync disabled (use manual cleanup button) 
+2026-01-29T00:00:27.914Z [[32minfo[39m]: ✅ Server running on port 3000 
+2026-01-29T00:00:27.914Z [[32minfo[39m]: 🔐 OAuth Login: http://localhost:3000/oauth/authorize 
+2026-01-29T00:00:27.915Z [[32minfo[39m]: 📡 Webhook endpoint: https://26e6a5a0f8ce.ngrok-free.app/api/webhooks/ringcentral 
+2026-01-29T00:00:27.915Z [[32minfo[39m]: 🎯 Frontend: http://localhost:5173 
+2026-01-29T00:00:27.915Z [[32minfo[39m]: 📊 Data retention: 24 hours 
+2026-01-29T00:00:31.197Z [[32minfo[39m]: 🔌 Client connected: 6stm8OuQOK2XFBNQAAAB 
+2026-01-29T00:00:31.871Z [[32minfo[39m]: 🔌 Client connected: N_2GrUgMoDtKzwNAAAAD 
+2026-01-29T00:00:40.921Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/extension/62835609006/telephony/sessions {
+  "sessionId": "s-a0dd84223d49cz19c070bd095z2ee51c60000"
+}
+2026-01-29T00:00:40.922Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd84223d49cz19c070bd095z2ee51c60000 
+2026-01-29T00:00:40.923Z [[34mdebug[39m]: Index miss for session s-a0dd84223d49cz19c070bd095z2ee51c60000:p-a0dd84223d49cz19c070bd095z2ee51c60000-7, scanning... 
+2026-01-29T00:00:40.929Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/extension/62835609006/telephony/sessions {
+  "sessionId": "s-a0dd84223d49cz19c070bd095z2ee51c60000"
+}
+2026-01-29T00:00:40.929Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd84223d49cz19c070bd095z2ee51c60000 
+2026-01-29T00:00:40.929Z [[34mdebug[39m]: Index miss for session s-a0dd84223d49cz19c070bd095z2ee51c60000:p-a0dd84223d49cz19c070bd095z2ee51c60000-4, scanning... 
+2026-01-29T00:00:40.936Z [[34mdebug[39m]: No leg found for session s-a0dd84223d49cz19c070bd095z2ee51c60000, party p-a0dd84223d49cz19c070bd095z2ee51c60000-7 
+2026-01-29T00:00:40.939Z [[34mdebug[39m]: No leg found for session s-a0dd84223d49cz19c070bd095z2ee51c60000, party p-a0dd84223d49cz19c070bd095z2ee51c60000-4 
+2026-01-29T00:00:40.941Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/extension/63813149007/telephony/sessions {
+  "sessionId": "s-a0dd84223d49cz19c070bd095z2ee51c60000"
+}
+2026-01-29T00:00:40.942Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd84223d49cz19c070bd095z2ee51c60000 
+2026-01-29T00:00:40.942Z [[34mdebug[39m]: Index miss for session s-a0dd84223d49cz19c070bd095z2ee51c60000:p-a0dd84223d49cz19c070bd095z2ee51c60000-5, scanning... 
+2026-01-29T00:00:40.950Z [[34mdebug[39m]: No leg found for session s-a0dd84223d49cz19c070bd095z2ee51c60000, party p-a0dd84223d49cz19c070bd095z2ee51c60000-5 
+2026-01-29T00:00:40.990Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/extension/63813149007/telephony/sessions {
+  "sessionId": "s-a0dd84223d49cz19c070bd095z2ee51c60000"
+}
+2026-01-29T00:00:40.991Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd84223d49cz19c070bd095z2ee51c60000 
+2026-01-29T00:00:40.991Z [[34mdebug[39m]: Index miss for session s-a0dd84223d49cz19c070bd095z2ee51c60000:p-a0dd84223d49cz19c070bd095z2ee51c60000-8, scanning... 
+2026-01-29T00:00:41.000Z [[34mdebug[39m]: No leg found for session s-a0dd84223d49cz19c070bd095z2ee51c60000, party p-a0dd84223d49cz19c070bd095z2ee51c60000-8 
+2026-01-29T00:00:43.820Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/telephony/sessions {
+  "sessionId": "s-a0dd83923d939z19c070cc4ffz2ec63690000"
+}
+2026-01-29T00:00:43.820Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd83923d939z19c070cc4ffz2ec63690000 
+2026-01-29T00:00:43.820Z [[34mdebug[39m]: Index miss for session s-a0dd83923d939z19c070cc4ffz2ec63690000:p-a0dd83923d939z19c070cc4ffz2ec63690000-2, scanning... 
+2026-01-29T00:00:43.828Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/extension/63305037007/telephony/sessions {
+  "sessionId": "s-a0dd83923d939z19c070cc4ffz2ec63690000"
+}
+2026-01-29T00:00:43.828Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd83923d939z19c070cc4ffz2ec63690000 
+2026-01-29T00:00:43.828Z [[34mdebug[39m]: Index miss for session s-a0dd83923d939z19c070cc4ffz2ec63690000:p-a0dd83923d939z19c070cc4ffz2ec63690000-1, scanning... 
+2026-01-29T00:00:43.830Z [[34mdebug[39m]: No leg found for session s-a0dd83923d939z19c070cc4ffz2ec63690000, party p-a0dd83923d939z19c070cc4ffz2ec63690000-2 
+2026-01-29T00:00:43.836Z [[34mdebug[39m]: No leg found for session s-a0dd83923d939z19c070cc4ffz2ec63690000, party p-a0dd83923d939z19c070cc4ffz2ec63690000-1 
+2026-01-29T00:00:43.894Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/extension/63305037007/telephony/sessions {
+  "sessionId": "s-a0dd83923d939z19c070cc4ffz2ec63690000"
+}
+2026-01-29T00:00:43.894Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd83923d939z19c070cc4ffz2ec63690000 
+2026-01-29T00:00:43.894Z [[34mdebug[39m]: Index miss for session s-a0dd83923d939z19c070cc4ffz2ec63690000:p-a0dd83923d939z19c070cc4ffz2ec63690000-1, scanning... 
+2026-01-29T00:00:43.901Z [[34mdebug[39m]: No leg found for session s-a0dd83923d939z19c070cc4ffz2ec63690000, party p-a0dd83923d939z19c070cc4ffz2ec63690000-1 
+2026-01-29T00:00:43.968Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/extension/63845321007/telephony/sessions {
+  "sessionId": "s-a0dd84223d49cz19c070bd095z2ee51c60000"
+}
+2026-01-29T00:00:43.969Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd84223d49cz19c070bd095z2ee51c60000 
+2026-01-29T00:00:43.969Z [[34mdebug[39m]: Index miss for session s-a0dd84223d49cz19c070bd095z2ee51c60000:p-a0dd84223d49cz19c070bd095z2ee51c60000-9, scanning... 
+2026-01-29T00:00:43.977Z [[34mdebug[39m]: No leg found for session s-a0dd84223d49cz19c070bd095z2ee51c60000, party p-a0dd84223d49cz19c070bd095z2ee51c60000-9 
+2026-01-29T00:00:43.979Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/extension/63845321007/telephony/sessions {
+  "sessionId": "s-a0dd84223d49cz19c070bd095z2ee51c60000"
+}
+2026-01-29T00:00:43.980Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd84223d49cz19c070bd095z2ee51c60000 
+2026-01-29T00:00:43.980Z [[34mdebug[39m]: Index miss for session s-a0dd84223d49cz19c070bd095z2ee51c60000:p-a0dd84223d49cz19c070bd095z2ee51c60000-6, scanning... 
+2026-01-29T00:00:43.986Z [[34mdebug[39m]: No leg found for session s-a0dd84223d49cz19c070bd095z2ee51c60000, party p-a0dd84223d49cz19c070bd095z2ee51c60000-6 
+2026-01-29T00:00:49.884Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/extension/62824165006/telephony/sessions {
+  "sessionId": "s-a0dd8431ef73bz19c070c7fe4z2f0dcfe0000"
+}
+2026-01-29T00:00:49.884Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd8431ef73bz19c070c7fe4z2f0dcfe0000 
+2026-01-29T00:00:49.885Z [[34mdebug[39m]: Index miss for session s-a0dd8431ef73bz19c070c7fe4z2f0dcfe0000:p-a0dd8431ef73bz19c070c7fe4z2f0dcfe0000-1, scanning... 
+2026-01-29T00:00:49.894Z [[34mdebug[39m]: No leg found for session s-a0dd8431ef73bz19c070c7fe4z2f0dcfe0000, party p-a0dd8431ef73bz19c070c7fe4z2f0dcfe0000-1 
+2026-01-29T00:00:49.907Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/telephony/sessions {
+  "sessionId": "s-a0dd8431ef73bz19c070c7fe4z2f0dcfe0000"
+}
+2026-01-29T00:00:49.907Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd8431ef73bz19c070c7fe4z2f0dcfe0000 
+2026-01-29T00:00:49.907Z [[34mdebug[39m]: Index miss for session s-a0dd8431ef73bz19c070c7fe4z2f0dcfe0000:p-a0dd8431ef73bz19c070c7fe4z2f0dcfe0000-2, scanning... 
+2026-01-29T00:00:49.915Z [[34mdebug[39m]: No leg found for session s-a0dd8431ef73bz19c070c7fe4z2f0dcfe0000, party p-a0dd8431ef73bz19c070c7fe4z2f0dcfe0000-2 
+2026-01-29T00:00:50.609Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/telephony/sessions {
+  "sessionId": "s-a0dd83d2f3ab9z19c070bd536z2f0357b0000"
+}
+2026-01-29T00:00:50.610Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd83d2f3ab9z19c070bd536z2f0357b0000 
+2026-01-29T00:00:50.611Z [[34mdebug[39m]: Index miss for session s-a0dd83d2f3ab9z19c070bd536z2f0357b0000:p-a0dd83d2f3ab9z19c070bd536z2f0357b0000-1, scanning... 
+2026-01-29T00:00:50.621Z [[34mdebug[39m]: No leg found for session s-a0dd83d2f3ab9z19c070bd536z2f0357b0000, party p-a0dd83d2f3ab9z19c070bd536z2f0357b0000-1 
+2026-01-29T00:00:50.813Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/extension/62819041006/telephony/sessions {
+  "sessionId": "s-a0dd83d2f3ab9z19c070bd536z2f0357b0000"
+}
+2026-01-29T00:00:50.813Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd83d2f3ab9z19c070bd536z2f0357b0000 
+2026-01-29T00:00:50.814Z [[34mdebug[39m]: Index miss for session s-a0dd83d2f3ab9z19c070bd536z2f0357b0000:p-a0dd83d2f3ab9z19c070bd536z2f0357b0000-2, scanning... 
+2026-01-29T00:00:50.825Z [[34mdebug[39m]: No leg found for session s-a0dd83d2f3ab9z19c070bd536z2f0357b0000, party p-a0dd83d2f3ab9z19c070bd536z2f0357b0000-2 
+2026-01-29T00:00:51.117Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/telephony/sessions {
+  "sessionId": "s-a0dd83d2f3ab9z19c070ce1b9z2f06c760000"
+}
+2026-01-29T00:00:51.118Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd83d2f3ab9z19c070ce1b9z2f06c760000 
+2026-01-29T00:00:51.119Z [[34mdebug[39m]: Index miss for session s-a0dd83d2f3ab9z19c070ce1b9z2f06c760000:p-a0dd83d2f3ab9z19c070ce1b9z2f06c760000-1, scanning... 
+2026-01-29T00:00:51.129Z [[34mdebug[39m]: No leg found for session s-a0dd83d2f3ab9z19c070ce1b9z2f06c760000, party p-a0dd83d2f3ab9z19c070ce1b9z2f06c760000-1 
+2026-01-29T00:00:51.165Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/extension/63303287007/telephony/sessions {
+  "sessionId": "s-a0dd83d2f3ab9z19c070ce1b9z2f06c760000"
+}
+2026-01-29T00:00:51.165Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd83d2f3ab9z19c070ce1b9z2f06c760000 
+2026-01-29T00:00:51.165Z [[34mdebug[39m]: Index miss for session s-a0dd83d2f3ab9z19c070ce1b9z2f06c760000:p-a0dd83d2f3ab9z19c070ce1b9z2f06c760000-2, scanning... 
+2026-01-29T00:00:51.174Z [[34mdebug[39m]: No leg found for session s-a0dd83d2f3ab9z19c070ce1b9z2f06c760000, party p-a0dd83d2f3ab9z19c070ce1b9z2f06c760000-2 
+2026-01-29T00:00:51.280Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/telephony/sessions {
+  "sessionId": "s-a0dd83d2f3ab9z19c070ce1b9z2f06c760000"
+}
+2026-01-29T00:00:51.281Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd83d2f3ab9z19c070ce1b9z2f06c760000 
+2026-01-29T00:00:51.281Z [[34mdebug[39m]: Index miss for session s-a0dd83d2f3ab9z19c070ce1b9z2f06c760000:p-a0dd83d2f3ab9z19c070ce1b9z2f06c760000-1, scanning... 
+2026-01-29T00:00:51.293Z [[34mdebug[39m]: No leg found for session s-a0dd83d2f3ab9z19c070ce1b9z2f06c760000, party p-a0dd83d2f3ab9z19c070ce1b9z2f06c760000-1 
+2026-01-29T00:00:53.066Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/telephony/sessions {
+  "sessionId": "s-a0dd83923d939z19c070c628dz2ec52520000"
+}
+2026-01-29T00:00:53.066Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd83923d939z19c070c628dz2ec52520000 
+2026-01-29T00:00:53.067Z [[34mdebug[39m]: Index miss for session s-a0dd83923d939z19c070c628dz2ec52520000:p-a0dd83923d939z19c070c628dz2ec52520000-2, scanning... 
+2026-01-29T00:00:53.075Z [[34mdebug[39m]: No leg found for session s-a0dd83923d939z19c070c628dz2ec52520000, party p-a0dd83923d939z19c070c628dz2ec52520000-2 
+2026-01-29T00:00:53.116Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/extension/63707866007/telephony/sessions {
+  "sessionId": "s-a0dd83923d939z19c070c628dz2ec52520000"
+}
+2026-01-29T00:00:53.116Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd83923d939z19c070c628dz2ec52520000 
+2026-01-29T00:00:53.116Z [[34mdebug[39m]: Index miss for session s-a0dd83923d939z19c070c628dz2ec52520000:p-a0dd83923d939z19c070c628dz2ec52520000-1, scanning... 
+2026-01-29T00:00:53.123Z [[34mdebug[39m]: No leg found for session s-a0dd83923d939z19c070c628dz2ec52520000, party p-a0dd83923d939z19c070c628dz2ec52520000-1 
+2026-01-29T00:00:54.444Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/telephony/sessions {
+  "sessionId": "s-a0dd83d2f3ab9z19c070ceea8z2f06e810000"
+}
+2026-01-29T00:00:54.444Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd83d2f3ab9z19c070ceea8z2f06e810000 
+2026-01-29T00:00:54.445Z [[34mdebug[39m]: Index miss for session s-a0dd83d2f3ab9z19c070ceea8z2f06e810000:p-a0dd83d2f3ab9z19c070ceea8z2f06e810000-2, scanning... 
+2026-01-29T00:00:54.450Z [[34mdebug[39m]: No leg found for session s-a0dd83d2f3ab9z19c070ceea8z2f06e810000, party p-a0dd83d2f3ab9z19c070ceea8z2f06e810000-2 
+2026-01-29T00:00:54.476Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/extension/62719984006/telephony/sessions {
+  "sessionId": "s-a0dd83d2f3ab9z19c070ceea8z2f06e810000"
+}
+2026-01-29T00:00:54.476Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd83d2f3ab9z19c070ceea8z2f06e810000 
+2026-01-29T00:00:54.476Z [[34mdebug[39m]: Index miss for session s-a0dd83d2f3ab9z19c070ceea8z2f06e810000:p-a0dd83d2f3ab9z19c070ceea8z2f06e810000-1, scanning... 
+2026-01-29T00:00:54.484Z [[34mdebug[39m]: No leg found for session s-a0dd83d2f3ab9z19c070ceea8z2f06e810000, party p-a0dd83d2f3ab9z19c070ceea8z2f06e810000-1 
+2026-01-29T00:00:54.542Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/extension/62719984006/telephony/sessions {
+  "sessionId": "s-a0dd83d2f3ab9z19c070ceea8z2f06e810000"
+}
+2026-01-29T00:00:54.542Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd83d2f3ab9z19c070ceea8z2f06e810000 
+2026-01-29T00:00:54.543Z [[34mdebug[39m]: Index miss for session s-a0dd83d2f3ab9z19c070ceea8z2f06e810000:p-a0dd83d2f3ab9z19c070ceea8z2f06e810000-1, scanning... 
+2026-01-29T00:00:54.550Z [[34mdebug[39m]: No leg found for session s-a0dd83d2f3ab9z19c070ceea8z2f06e810000, party p-a0dd83d2f3ab9z19c070ceea8z2f06e810000-1 
+2026-01-29T00:00:57.606Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/telephony/sessions {
+  "sessionId": "s-a0dd83923d939z19c070cc4ffz2ec63690000"
+}
+2026-01-29T00:00:57.606Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd83923d939z19c070cc4ffz2ec63690000 
+2026-01-29T00:00:57.607Z [[34mdebug[39m]: Index miss for session s-a0dd83923d939z19c070cc4ffz2ec63690000:p-a0dd83923d939z19c070cc4ffz2ec63690000-2, scanning... 
+2026-01-29T00:00:57.614Z [[34mdebug[39m]: No leg found for session s-a0dd83923d939z19c070cc4ffz2ec63690000, party p-a0dd83923d939z19c070cc4ffz2ec63690000-2 
+2026-01-29T00:00:57.618Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/extension/63305037007/telephony/sessions {
+  "sessionId": "s-a0dd83923d939z19c070cc4ffz2ec63690000"
+}
+2026-01-29T00:00:57.618Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd83923d939z19c070cc4ffz2ec63690000 
+2026-01-29T00:00:57.618Z [[34mdebug[39m]: Index miss for session s-a0dd83923d939z19c070cc4ffz2ec63690000:p-a0dd83923d939z19c070cc4ffz2ec63690000-1, scanning... 
+2026-01-29T00:00:57.625Z [[34mdebug[39m]: No leg found for session s-a0dd83923d939z19c070cc4ffz2ec63690000, party p-a0dd83923d939z19c070cc4ffz2ec63690000-1 
+2026-01-29T00:00:57.701Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/extension/63303287007/telephony/sessions {
+  "sessionId": "s-a0dd83d2f3ab9z19c070ce1b9z2f06c760000"
+}
+2026-01-29T00:00:57.701Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd83d2f3ab9z19c070ce1b9z2f06c760000 
+2026-01-29T00:00:57.701Z [[34mdebug[39m]: Index miss for session s-a0dd83d2f3ab9z19c070ce1b9z2f06c760000:p-a0dd83d2f3ab9z19c070ce1b9z2f06c760000-2, scanning... 
+2026-01-29T00:00:57.709Z [[34mdebug[39m]: No leg found for session s-a0dd83d2f3ab9z19c070ce1b9z2f06c760000, party p-a0dd83d2f3ab9z19c070ce1b9z2f06c760000-2 
+2026-01-29T00:01:01.185Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/extension/63845321007/telephony/sessions {
+  "sessionId": "s-a0dd84223d49cz19c070bd095z2ee51c60000"
+}
+2026-01-29T00:01:01.186Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd84223d49cz19c070bd095z2ee51c60000 
+2026-01-29T00:01:01.186Z [[34mdebug[39m]: Index miss for session s-a0dd84223d49cz19c070bd095z2ee51c60000:p-a0dd84223d49cz19c070bd095z2ee51c60000-9, scanning... 
+2026-01-29T00:01:01.199Z [[34mdebug[39m]: No leg found for session s-a0dd84223d49cz19c070bd095z2ee51c60000, party p-a0dd84223d49cz19c070bd095z2ee51c60000-9 
+2026-01-29T00:01:01.796Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/extension/63753959007/telephony/sessions {
+  "sessionId": "s-a0dd84223d49cz19c070d0b53z2ee9a070000"
+}
+2026-01-29T00:01:01.797Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd84223d49cz19c070d0b53z2ee9a070000 
+2026-01-29T00:01:01.797Z [[34mdebug[39m]: Index miss for session s-a0dd84223d49cz19c070d0b53z2ee9a070000:p-a0dd84223d49cz19c070d0b53z2ee9a070000-1, scanning... 
+2026-01-29T00:01:01.808Z [[34mdebug[39m]: No leg found for session s-a0dd84223d49cz19c070d0b53z2ee9a070000, party p-a0dd84223d49cz19c070d0b53z2ee9a070000-1 
+2026-01-29T00:01:01.949Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/telephony/sessions {
+  "sessionId": "s-a0dd84223d49cz19c070d0b53z2ee9a070000"
+}
+2026-01-29T00:01:01.949Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd84223d49cz19c070d0b53z2ee9a070000 
+2026-01-29T00:01:01.950Z [[34mdebug[39m]: Index miss for session s-a0dd84223d49cz19c070d0b53z2ee9a070000:p-a0dd84223d49cz19c070d0b53z2ee9a070000-2, scanning... 
+2026-01-29T00:01:01.957Z [[34mdebug[39m]: No leg found for session s-a0dd84223d49cz19c070d0b53z2ee9a070000, party p-a0dd84223d49cz19c070d0b53z2ee9a070000-2 
+2026-01-29T00:01:02.221Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/extension/63753959007/telephony/sessions {
+  "sessionId": "s-a0dd84223d49cz19c070d0b53z2ee9a070000"
+}
+2026-01-29T00:01:02.221Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd84223d49cz19c070d0b53z2ee9a070000 
+2026-01-29T00:01:02.222Z [[34mdebug[39m]: Index miss for session s-a0dd84223d49cz19c070d0b53z2ee9a070000:p-a0dd84223d49cz19c070d0b53z2ee9a070000-1, scanning... 
+2026-01-29T00:01:02.230Z [[34mdebug[39m]: No leg found for session s-a0dd84223d49cz19c070d0b53z2ee9a070000, party p-a0dd84223d49cz19c070d0b53z2ee9a070000-1 
+2026-01-29T00:01:10.522Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/telephony/sessions {
+  "sessionId": "s-a0dd8431ef73bz19c070c7fe4z2f0dcfe0000"
+}
+2026-01-29T00:01:10.522Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd8431ef73bz19c070c7fe4z2f0dcfe0000 
+2026-01-29T00:01:10.522Z [[34mdebug[39m]: Index miss for session s-a0dd8431ef73bz19c070c7fe4z2f0dcfe0000:p-a0dd8431ef73bz19c070c7fe4z2f0dcfe0000-2, scanning... 
+2026-01-29T00:01:10.530Z [[34mdebug[39m]: No leg found for session s-a0dd8431ef73bz19c070c7fe4z2f0dcfe0000, party p-a0dd8431ef73bz19c070c7fe4z2f0dcfe0000-2 
+2026-01-29T00:01:10.535Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/extension/62824165006/telephony/sessions {
+  "sessionId": "s-a0dd8431ef73bz19c070c7fe4z2f0dcfe0000"
+}
+2026-01-29T00:01:10.535Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd8431ef73bz19c070c7fe4z2f0dcfe0000 
+2026-01-29T00:01:10.536Z [[34mdebug[39m]: Index miss for session s-a0dd8431ef73bz19c070c7fe4z2f0dcfe0000:p-a0dd8431ef73bz19c070c7fe4z2f0dcfe0000-1, scanning... 
+2026-01-29T00:01:10.542Z [[34mdebug[39m]: No leg found for session s-a0dd8431ef73bz19c070c7fe4z2f0dcfe0000, party p-a0dd8431ef73bz19c070c7fe4z2f0dcfe0000-1 
+2026-01-29T00:01:10.580Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/extension/63845321007/telephony/sessions {
+  "sessionId": "s-a0dd84223d49cz19c070bd095z2ee51c60000"
+}
+2026-01-29T00:01:10.580Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd84223d49cz19c070bd095z2ee51c60000 
+2026-01-29T00:01:10.581Z [[34mdebug[39m]: Index miss for session s-a0dd84223d49cz19c070bd095z2ee51c60000:p-a0dd84223d49cz19c070bd095z2ee51c60000-a, scanning... 
+2026-01-29T00:01:10.587Z [[34mdebug[39m]: No leg found for session s-a0dd84223d49cz19c070bd095z2ee51c60000, party p-a0dd84223d49cz19c070bd095z2ee51c60000-a 
+2026-01-29T00:01:10.588Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/extension/63813149007/telephony/sessions {
+  "sessionId": "s-a0dd84223d49cz19c070bd095z2ee51c60000"
+}
+2026-01-29T00:01:10.588Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd84223d49cz19c070bd095z2ee51c60000 
+2026-01-29T00:01:10.588Z [[34mdebug[39m]: Index miss for session s-a0dd84223d49cz19c070bd095z2ee51c60000:p-a0dd84223d49cz19c070bd095z2ee51c60000-8, scanning... 
+2026-01-29T00:01:10.588Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/extension/62835609006/telephony/sessions {
+  "sessionId": "s-a0dd84223d49cz19c070bd095z2ee51c60000"
+}
+2026-01-29T00:01:10.588Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd84223d49cz19c070bd095z2ee51c60000 
+2026-01-29T00:01:10.589Z [[34mdebug[39m]: Index miss for session s-a0dd84223d49cz19c070bd095z2ee51c60000:p-a0dd84223d49cz19c070bd095z2ee51c60000-7, scanning... 
+2026-01-29T00:01:10.596Z [[34mdebug[39m]: No leg found for session s-a0dd84223d49cz19c070bd095z2ee51c60000, party p-a0dd84223d49cz19c070bd095z2ee51c60000-8 
+2026-01-29T00:01:10.596Z [[34mdebug[39m]: No leg found for session s-a0dd84223d49cz19c070bd095z2ee51c60000, party p-a0dd84223d49cz19c070bd095z2ee51c60000-7 
+2026-01-29T00:01:10.682Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/extension/62835609006/telephony/sessions {
+  "sessionId": "s-a0dd83d2f3ab9z19c070ce1b9z2f06c760000"
+}
+2026-01-29T00:01:10.683Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/extension/63845321007/telephony/sessions {
+  "sessionId": "s-a0dd83d2f3ab9z19c070ce1b9z2f06c760000"
+}
+2026-01-29T00:01:10.683Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd83d2f3ab9z19c070ce1b9z2f06c760000 
+2026-01-29T00:01:10.683Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd83d2f3ab9z19c070ce1b9z2f06c760000 
+2026-01-29T00:01:10.683Z [[34mdebug[39m]: Index miss for session s-a0dd83d2f3ab9z19c070ce1b9z2f06c760000:p-a0dd83d2f3ab9z19c070ce1b9z2f06c760000-3, scanning... 
+2026-01-29T00:01:10.683Z [[34mdebug[39m]: Index miss for session s-a0dd83d2f3ab9z19c070ce1b9z2f06c760000:p-a0dd83d2f3ab9z19c070ce1b9z2f06c760000-4, scanning... 
+2026-01-29T00:01:10.691Z [[34mdebug[39m]: No leg found for session s-a0dd83d2f3ab9z19c070ce1b9z2f06c760000, party p-a0dd83d2f3ab9z19c070ce1b9z2f06c760000-3 
+2026-01-29T00:01:10.691Z [[34mdebug[39m]: No leg found for session s-a0dd83d2f3ab9z19c070ce1b9z2f06c760000, party p-a0dd83d2f3ab9z19c070ce1b9z2f06c760000-4 
+2026-01-29T00:01:10.803Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/telephony/sessions {
+  "sessionId": "s-a0dd8471f14f7z19c070d2e82z2ea1d1e0000"
+}
+2026-01-29T00:01:10.804Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd8471f14f7z19c070d2e82z2ea1d1e0000 
+2026-01-29T00:01:10.804Z [[34mdebug[39m]: Index miss for session s-a0dd8471f14f7z19c070d2e82z2ea1d1e0000:p-a0dd8471f14f7z19c070d2e82z2ea1d1e0000-2, scanning... 
+2026-01-29T00:01:10.811Z [[34mdebug[39m]: No leg found for session s-a0dd8471f14f7z19c070d2e82z2ea1d1e0000, party p-a0dd8471f14f7z19c070d2e82z2ea1d1e0000-2 
+2026-01-29T00:01:10.824Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/extension/62582052006/telephony/sessions {
+  "sessionId": "s-a0dd8471f14f7z19c070d2e82z2ea1d1e0000"
+}
+2026-01-29T00:01:10.825Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/extension/62582052006/telephony/sessions {
+  "sessionId": "s-a0dd8471f14f7z19c070d2e82z2ea1d1e0000"
+}
+2026-01-29T00:01:10.825Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd8471f14f7z19c070d2e82z2ea1d1e0000 
+2026-01-29T00:01:10.825Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd8471f14f7z19c070d2e82z2ea1d1e0000 
+2026-01-29T00:01:10.825Z [[34mdebug[39m]: Index miss for session s-a0dd8471f14f7z19c070d2e82z2ea1d1e0000:p-a0dd8471f14f7z19c070d2e82z2ea1d1e0000-1, scanning... 
+2026-01-29T00:01:10.825Z [[34mdebug[39m]: Index miss for session s-a0dd8471f14f7z19c070d2e82z2ea1d1e0000:p-a0dd8471f14f7z19c070d2e82z2ea1d1e0000-1, scanning... 
+2026-01-29T00:01:10.833Z [[34mdebug[39m]: No leg found for session s-a0dd8471f14f7z19c070d2e82z2ea1d1e0000, party p-a0dd8471f14f7z19c070d2e82z2ea1d1e0000-1 
+2026-01-29T00:01:10.833Z [[34mdebug[39m]: No leg found for session s-a0dd8471f14f7z19c070d2e82z2ea1d1e0000, party p-a0dd8471f14f7z19c070d2e82z2ea1d1e0000-1 
+2026-01-29T00:01:10.835Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/telephony/sessions {
+  "sessionId": "s-a0dd84223d49cz19c070bd095z2ee51c60000"
+}
+2026-01-29T00:01:10.835Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd84223d49cz19c070bd095z2ee51c60000 
+2026-01-29T00:01:10.835Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/extension/62482449006/telephony/sessions {
+  "sessionId": "s-a0dd84223d49cz19c070bd095z2ee51c60000"
+}
+2026-01-29T00:01:10.836Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd84223d49cz19c070bd095z2ee51c60000 
+2026-01-29T00:01:10.836Z [[34mdebug[39m]: Index miss for session s-a0dd84223d49cz19c070bd095z2ee51c60000:p-a0dd84223d49cz19c070bd095z2ee51c60000-b, scanning... 
+2026-01-29T00:01:10.836Z [[34mdebug[39m]: Index miss for session s-a0dd84223d49cz19c070bd095z2ee51c60000:p-a0dd84223d49cz19c070bd095z2ee51c60000-3, scanning... 
+2026-01-29T00:01:10.842Z [[34mdebug[39m]: No leg found for session s-a0dd84223d49cz19c070bd095z2ee51c60000, party p-a0dd84223d49cz19c070bd095z2ee51c60000-b 
+2026-01-29T00:01:10.842Z [[34mdebug[39m]: No leg found for session s-a0dd84223d49cz19c070bd095z2ee51c60000, party p-a0dd84223d49cz19c070bd095z2ee51c60000-3 
+2026-01-29T00:01:12.807Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/telephony/sessions {
+  "sessionId": "s-a0dd84223d49cz19c070bd095z2ee51c60000"
+}
+2026-01-29T00:01:12.808Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd84223d49cz19c070bd095z2ee51c60000 
+2026-01-29T00:01:12.808Z [[34mdebug[39m]: Index miss for session s-a0dd84223d49cz19c070bd095z2ee51c60000:p-a0dd84223d49cz19c070bd095z2ee51c60000-b, scanning... 
+2026-01-29T00:01:12.816Z [[34mdebug[39m]: No leg found for session s-a0dd84223d49cz19c070bd095z2ee51c60000, party p-a0dd84223d49cz19c070bd095z2ee51c60000-b 
+2026-01-29T00:01:12.820Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/telephony/sessions {
+  "sessionId": "s-a0dd84223d49cz19c070bd095z2ee51c60000"
+}
+2026-01-29T00:01:12.820Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd84223d49cz19c070bd095z2ee51c60000 
+2026-01-29T00:01:12.820Z [[34mdebug[39m]: Index miss for session s-a0dd84223d49cz19c070bd095z2ee51c60000:p-a0dd84223d49cz19c070bd095z2ee51c60000-b, scanning... 
+2026-01-29T00:01:12.828Z [[34mdebug[39m]: No leg found for session s-a0dd84223d49cz19c070bd095z2ee51c60000, party p-a0dd84223d49cz19c070bd095z2ee51c60000-b 
+2026-01-29T00:01:15.247Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/telephony/sessions {
+  "sessionId": "s-a0dd848298f77z19c07051e2fz2ec5a370000"
+}
+2026-01-29T00:01:15.248Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd848298f77z19c07051e2fz2ec5a370000 
+2026-01-29T00:01:15.249Z [[34mdebug[39m]: Index miss for session s-a0dd848298f77z19c07051e2fz2ec5a370000:p-a0dd848298f77z19c07051e2fz2ec5a370000-1, scanning... 
+2026-01-29T00:01:15.258Z [[34mdebug[39m]: No leg found for session s-a0dd848298f77z19c07051e2fz2ec5a370000, party p-a0dd848298f77z19c07051e2fz2ec5a370000-1 
+2026-01-29T00:01:15.280Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/extension/63687287007/telephony/sessions {
+  "sessionId": "s-a0dd848298f77z19c07051e2fz2ec5a370000"
+}
+2026-01-29T00:01:15.281Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd848298f77z19c07051e2fz2ec5a370000 
+2026-01-29T00:01:15.281Z [[34mdebug[39m]: Index miss for session s-a0dd848298f77z19c07051e2fz2ec5a370000:p-a0dd848298f77z19c07051e2fz2ec5a370000-5, scanning... 
+2026-01-29T00:01:15.290Z [[34mdebug[39m]: No leg found for session s-a0dd848298f77z19c07051e2fz2ec5a370000, party p-a0dd848298f77z19c07051e2fz2ec5a370000-5 
+2026-01-29T00:01:16.676Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/telephony/sessions {
+  "sessionId": "s-a0dd84223d49cz19c070d0b53z2ee9a070000"
+}
+2026-01-29T00:01:16.677Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd84223d49cz19c070d0b53z2ee9a070000 
+2026-01-29T00:01:16.677Z [[34mdebug[39m]: Index miss for session s-a0dd84223d49cz19c070d0b53z2ee9a070000:p-a0dd84223d49cz19c070d0b53z2ee9a070000-2, scanning... 
+2026-01-29T00:01:16.678Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/extension/63753959007/telephony/sessions {
+  "sessionId": "s-a0dd84223d49cz19c070d0b53z2ee9a070000"
+}
+2026-01-29T00:01:16.678Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd84223d49cz19c070d0b53z2ee9a070000 
+2026-01-29T00:01:16.679Z [[34mdebug[39m]: Index miss for session s-a0dd84223d49cz19c070d0b53z2ee9a070000:p-a0dd84223d49cz19c070d0b53z2ee9a070000-1, scanning... 
+2026-01-29T00:01:16.686Z [[34mdebug[39m]: No leg found for session s-a0dd84223d49cz19c070d0b53z2ee9a070000, party p-a0dd84223d49cz19c070d0b53z2ee9a070000-2 
+2026-01-29T00:01:16.687Z [[34mdebug[39m]: No leg found for session s-a0dd84223d49cz19c070d0b53z2ee9a070000, party p-a0dd84223d49cz19c070d0b53z2ee9a070000-1 
+2026-01-29T00:01:17.068Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/extension/63845314007/telephony/sessions {
+  "sessionId": "s-a0dd84023d5f9z19c0705a5cdz2ea5dec0000"
+}
+2026-01-29T00:01:17.069Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd84023d5f9z19c0705a5cdz2ea5dec0000 
+2026-01-29T00:01:17.069Z [[34mdebug[39m]: Index miss for session s-a0dd84023d5f9z19c0705a5cdz2ea5dec0000:p-a0dd84023d5f9z19c0705a5cdz2ea5dec0000-5, scanning... 
+2026-01-29T00:01:17.077Z [[34mdebug[39m]: No leg found for session s-a0dd84023d5f9z19c0705a5cdz2ea5dec0000, party p-a0dd84023d5f9z19c0705a5cdz2ea5dec0000-5 
+2026-01-29T00:01:17.088Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/telephony/sessions {
+  "sessionId": "s-a0dd84023d5f9z19c0705a5cdz2ea5dec0000"
+}
+2026-01-29T00:01:17.088Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd84023d5f9z19c0705a5cdz2ea5dec0000 
+2026-01-29T00:01:17.088Z [[34mdebug[39m]: Index miss for session s-a0dd84023d5f9z19c0705a5cdz2ea5dec0000:p-a0dd84023d5f9z19c0705a5cdz2ea5dec0000-1, scanning... 
+2026-01-29T00:01:17.096Z [[34mdebug[39m]: No leg found for session s-a0dd84023d5f9z19c0705a5cdz2ea5dec0000, party p-a0dd84023d5f9z19c0705a5cdz2ea5dec0000-1 
+2026-01-29T00:01:17.166Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/extension/63845314007/telephony/sessions {
+  "sessionId": "s-a0dd83d2f3ab9z19c070ce1b9z2f06c760000"
+}
+2026-01-29T00:01:17.166Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd83d2f3ab9z19c070ce1b9z2f06c760000 
+2026-01-29T00:01:17.167Z [[34mdebug[39m]: Index miss for session s-a0dd83d2f3ab9z19c070ce1b9z2f06c760000:p-a0dd83d2f3ab9z19c070ce1b9z2f06c760000-5, scanning... 
+2026-01-29T00:01:17.173Z [[34mdebug[39m]: No leg found for session s-a0dd83d2f3ab9z19c070ce1b9z2f06c760000, party p-a0dd83d2f3ab9z19c070ce1b9z2f06c760000-5 
+2026-01-29T00:01:19.022Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/telephony/sessions {
+  "sessionId": "s-a0dd8471f14f7z19c070d2e82z2ea1d1e0000"
+}
+2026-01-29T00:01:19.024Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd8471f14f7z19c070d2e82z2ea1d1e0000 
+2026-01-29T00:01:19.025Z [[34mdebug[39m]: Index miss for session s-a0dd8471f14f7z19c070d2e82z2ea1d1e0000:p-a0dd8471f14f7z19c070d2e82z2ea1d1e0000-2, scanning... 
+2026-01-29T00:01:19.026Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/extension/62582052006/telephony/sessions {
+  "sessionId": "s-a0dd8471f14f7z19c070d2e82z2ea1d1e0000"
+}
+2026-01-29T00:01:19.026Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd8471f14f7z19c070d2e82z2ea1d1e0000 
+2026-01-29T00:01:19.028Z [[34mdebug[39m]: Index miss for session s-a0dd8471f14f7z19c070d2e82z2ea1d1e0000:p-a0dd8471f14f7z19c070d2e82z2ea1d1e0000-1, scanning... 
+2026-01-29T00:01:19.040Z [[34mdebug[39m]: No leg found for session s-a0dd8471f14f7z19c070d2e82z2ea1d1e0000, party p-a0dd8471f14f7z19c070d2e82z2ea1d1e0000-2 
+2026-01-29T00:01:19.040Z [[34mdebug[39m]: No leg found for session s-a0dd8471f14f7z19c070d2e82z2ea1d1e0000, party p-a0dd8471f14f7z19c070d2e82z2ea1d1e0000-1 
+2026-01-29T00:01:20.196Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/telephony/sessions {
+  "sessionId": "s-a0dd83d2f3ab9z19c070ceea8z2f06e810000"
+}
+2026-01-29T00:01:20.199Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd83d2f3ab9z19c070ceea8z2f06e810000 
+2026-01-29T00:01:20.201Z [[34mdebug[39m]: Index miss for session s-a0dd83d2f3ab9z19c070ceea8z2f06e810000:p-a0dd83d2f3ab9z19c070ceea8z2f06e810000-2, scanning... 
+2026-01-29T00:01:20.211Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/extension/62719984006/telephony/sessions {
+  "sessionId": "s-a0dd83d2f3ab9z19c070ceea8z2f06e810000"
+}
+2026-01-29T00:01:20.212Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd83d2f3ab9z19c070ceea8z2f06e810000 
+2026-01-29T00:01:20.212Z [[34mdebug[39m]: Index miss for session s-a0dd83d2f3ab9z19c070ceea8z2f06e810000:p-a0dd83d2f3ab9z19c070ceea8z2f06e810000-1, scanning... 
+2026-01-29T00:01:20.222Z [[34mdebug[39m]: No leg found for session s-a0dd83d2f3ab9z19c070ceea8z2f06e810000, party p-a0dd83d2f3ab9z19c070ceea8z2f06e810000-2 
+2026-01-29T00:01:20.224Z [[34mdebug[39m]: No leg found for session s-a0dd83d2f3ab9z19c070ceea8z2f06e810000, party p-a0dd83d2f3ab9z19c070ceea8z2f06e810000-1 
+4:01:20 PM [tsx] change in ./src/server.ts Restarting...
+2026-01-29T00:01:20.755Z [[32minfo[39m]: 🛑 Shutting down gracefully... 
+c2026-01-29T00:01:21.097Z [[32minfo[39m]: ✅ Twilio calling service initialized 
+2026-01-29T00:01:21.098Z [[32minfo[39m]:    From: +18446607363 
+2026-01-29T00:01:21.098Z [[32minfo[39m]:    Webhook: https://26e6a5a0f8ce.ngrok-free.app 
+2026-01-29T00:01:21.100Z [[32minfo[39m]: Live detection initialized with 4 strategies 
+2026-01-29T00:01:21.102Z [[32minfo[39m]: 🚀 Starting IRS Hold Hunter... 
+2026-01-29T00:01:21.102Z [[32minfo[39m]: 🔐 OAuth Mode - Login required via RingCentral 
+2026-01-29T00:01:21.107Z [[32minfo[39m]: ✅ Redis connected 
+2026-01-29T00:01:21.111Z [[32minfo[39m]: ℹ️  No authentication found - user needs to login at: http://localhost:3000/oauth/authorize 
+2026-01-29T00:01:21.111Z [[32minfo[39m]: ℹ️  Automatic status sync disabled (use manual cleanup button) 
+2026-01-29T00:01:21.112Z [[32minfo[39m]: ✅ Server running on port 3000 
+2026-01-29T00:01:21.112Z [[32minfo[39m]: 🔐 OAuth Login: http://localhost:3000/oauth/authorize 
+2026-01-29T00:01:21.112Z [[32minfo[39m]: 📡 Webhook endpoint: https://26e6a5a0f8ce.ngrok-free.app/api/webhooks/ringcentral 
+2026-01-29T00:01:21.112Z [[32minfo[39m]: 🎯 Frontend: http://localhost:5173 
+2026-01-29T00:01:21.112Z [[32minfo[39m]: 📊 Data retention: 24 hours 
+2026-01-29T00:01:21.325Z [[32minfo[39m]: 🔌 Client connected: BsS00y5mttQW8eLuAAAB 
+2026-01-29T00:01:21.874Z [[32minfo[39m]: 🔌 Client connected: uTgjRh0Hd4IlcsWEAAAD 
+2026-01-29T00:01:24.256Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/extension/63753959007/telephony/sessions {
+  "sessionId": "s-a0dd84223d49cz19c070d0b53z2ee9a070000"
+}
+2026-01-29T00:01:24.257Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd84223d49cz19c070d0b53z2ee9a070000 
+2026-01-29T00:01:24.258Z [[34mdebug[39m]: Index miss for session s-a0dd84223d49cz19c070d0b53z2ee9a070000:p-a0dd84223d49cz19c070d0b53z2ee9a070000-1, scanning... 
+2026-01-29T00:01:24.264Z [[34mdebug[39m]: 📨 Webhook received: /restapi/v1.0/account/62378666006/telephony/sessions {
+  "sessionId": "s-a0dd84223d49cz19c070d0b53z2ee9a070000"
+}
+2026-01-29T00:01:24.265Z [[34mdebug[39m]: 📨 Processing webhook for session s-a0dd84223d49cz19c070d0b53z2ee9a070000 
+2026-01-29T00:01:24.265Z [[34mdebug[39m]: Index miss for session s-a0dd84223d49cz19c070d0b53z2ee9a070000:p-a0dd84223d49cz19c070d0b53z2ee9a070000-2, scanning... 
+2026-01-29T00:01:24.272Z [[34mdebug[39m]: No leg found for session s-a0dd84223d49cz19c070d0b53z2ee9a070000, party p-a0dd84223d49cz19c070d0b53z2ee9a070000-1 
+2026-01-29T00:01:24.276Z [[34mdebug[39m]: No leg found for session s-a0dd84223d49cz19c070d0b53z2ee9a070000, party p-a0dd84223d49cz19c070d0b53z2ee9a070000-2 

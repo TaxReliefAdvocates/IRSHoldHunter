@@ -1,7 +1,7 @@
 import logger from '../config/logger.js';
 import dialQueue from '../queues/dialQueue.js';
 import { store } from '../storage/RedisStore.js';
-import extensionService from './ExtensionService.js';
+import { twilioCallingService } from './TwilioCallingService.js';
 import queueService from './QueueService.js';
 import destinationService from './DestinationService.js';
 import type { JobWithLegs } from '../types/index.js';
@@ -18,6 +18,11 @@ class JobService {
   async startJob(request: StartJobRequest = {}): Promise<string> {
     try {
       const lineCount = request.lineCount || 6;
+      
+      // Validate line count (Twilio supports 1-100+)
+      if (lineCount < 1 || lineCount > 100) {
+        throw new Error('Line count must be between 1 and 100');
+      }
       
       // Get destination details
       let destinationConfig;
@@ -51,54 +56,15 @@ class JobService {
         }
       }
       
-      logger.info(`🚀 Starting new job: calling ${destinationConfig.phoneNumber} with ${lineCount} lines`);
+      if (!queueConfig.phoneNumber) {
+        throw new Error(`Queue "${queueConfig.name}" has no phone number configured`);
+      }
+      
+      logger.info(`🚀 Starting new job: calling ${destinationConfig.phoneNumber} with ${lineCount} lines via Twilio`);
       logger.info(`📍 Destination: ${destinationConfig.name} (${destinationConfig.phoneNumber})`);
       logger.info(`📞 Transfer queue: ${queueConfig.name} (${queueConfig.phoneNumber})`);
       
-      // Determine which extensions to use
-      let extensionIds: string[];
-      
-      if (request.specificExtensionIds && request.specificExtensionIds.length > 0) {
-        // User manually selected extensions
-        logger.info(`Using ${request.specificExtensionIds.length} manually selected extensions`);
-        extensionIds = request.specificExtensionIds;
-      } else if (request.poolName) {
-        // Use saved pool
-        logger.info(`Using extension pool: ${request.poolName}`);
-        const poolExtensions = await store.getExtensionPool(request.poolName);
-        extensionIds = poolExtensions.slice(0, lineCount);
-      } else {
-        // Auto-select available extensions
-        logger.info(`Auto-selecting ${lineCount} available extensions`);
-        
-        // Get authenticated user info
-        const userDataStr = await store.getConfig('rc_authenticated_user');
-        const userData = userDataStr ? JSON.parse(userDataStr) : null;
-        
-        // Filter extensions based on user permissions
-        let available = await extensionService.getFilteredExtensions({
-          enabledOnly: true,
-          availableOnly: true
-        });
-        
-        // If user is not an admin, they can only use their own extension
-        if (userData && !userData.isAdmin) {
-          logger.info(`🔒 Non-admin user: restricting to extension ${userData.extensionNumber}`);
-          available = available.filter(e => e.extensionNumber === userData.extensionNumber);
-          
-          if (available.length === 0) {
-            throw new Error(`Your extension ${userData.extensionNumber} is not available or not enabled for calling. Please enable it in the Extensions tab.`);
-          }
-        }
-        
-        extensionIds = available.slice(0, lineCount).map(e => e.id);
-      }
-      
-      if (extensionIds.length < lineCount) {
-        throw new Error(`Only ${extensionIds.length} extensions available, need ${lineCount}`);
-      }
-      
-      // Create job
+      // Create job (NO extension management needed)
       const job = await store.createJob({
         irsNumber: destinationConfig.phoneNumber,
         queueNumber: queueConfig.phoneNumber,
@@ -115,42 +81,41 @@ class JobService {
       
       logger.info(`📋 Job created: ${job.id}`);
       
-      // Reserve extensions for this job
-      await extensionService.reserveExtensions(extensionIds, job.id);
-      
-      // Create call legs and queue dial jobs with stagger
-      for (let i = 0; i < extensionIds.length; i++) {
-        const extensionId = extensionIds[i];
-        
-        // Create leg record
+      // Create call legs (NO extensions needed for Twilio)
+      const legs = [];
+      for (let i = 0; i < lineCount; i++) {
         const leg = await store.createCallLeg({
           jobId: job.id,
-          holdExtensionId: extensionId,
           status: 'DIALING',
         });
-        
-        // Queue dial with 2-second stagger
-        const delay = i * 2000;
+        legs.push(leg);
+      }
+      
+      // Queue dial jobs with randomized stagger (2-8 seconds)
+      for (let i = 0; i < legs.length; i++) {
+        const baseDelay = i * 2000; // 2 second base stagger
+        const randomDelay = Math.floor(Math.random() * 6000); // Random 0-6 seconds
+        const totalDelay = baseDelay + randomDelay;
         
         await dialQueue.add(
           {
-            legId: leg.id,
-            extensionId,
-            irsNumber: destinationConfig.phoneNumber,
+            legId: legs[i].id,
+            jobId: job.id,
+            destinationNumber: destinationConfig.phoneNumber,
           },
           {
-            delay,
+            delay: totalDelay,
             attempts: 1,
             removeOnComplete: true,
           }
         );
         
         logger.info(
-          `📞 Leg ${i + 1}/6 queued: extension=${extensionId}, delay=${delay}ms`
+          `📞 Leg ${i + 1}/${lineCount} queued via Twilio, delay=${(totalDelay / 1000).toFixed(1)}s`
         );
       }
       
-      logger.info(`✅ Job ${job.id} started with 6 legs`);
+      logger.info(`✅ Job ${job.id} started with ${lineCount} Twilio lines`);
       
       return job.id;
     } catch (error) {
@@ -184,23 +149,25 @@ class JobService {
         return;
       }
       
-      // Import rcService here to avoid circular dependency
-      const { default: rcService } = await import('./RCService.js');
-      
       // Get all legs
       const legs = await store.getJobLegs(jobId);
       
-      // Hang up all active legs
+      // Hang up all active Twilio calls
       const activeLegs = legs.filter(
         (leg) => leg.status !== 'ENDED' && leg.status !== 'TRANSFERRED'
       );
       
+      logger.info(`Hanging up ${activeLegs.length} active Twilio calls`);
+      
       await Promise.allSettled(
-        activeLegs.map((leg) => {
-          if (leg.telephonySessionId && leg.partyId) {
-            return rcService.hangUpParty(leg.telephonySessionId, leg.partyId);
+        activeLegs.map(async (leg) => {
+          if (leg.twilioCallSid) {
+            try {
+              await twilioCallingService.hangUp(leg.twilioCallSid);
+            } catch (error) {
+              logger.error(`Failed to hang up ${leg.twilioCallSid}:`, error);
+            }
           }
-          return Promise.resolve();
         })
       );
       
@@ -219,10 +186,6 @@ class JobService {
         status: 'STOPPED',
         stoppedAt: new Date().toISOString(),
       });
-      
-      // Release extensions
-      const extensionIds = legs.map(leg => leg.holdExtensionId);
-      await extensionService.releaseExtensions(extensionIds);
       
       logger.info(`✅ Job ${jobId} stopped`);
     } catch (error) {

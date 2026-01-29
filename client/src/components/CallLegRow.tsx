@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { StatusBadge } from './StatusBadge';
+import { useSocket } from '../hooks/useSocket';
+import { LiveAudioPlayer } from './LiveAudioPlayer';
 
 interface CallLeg {
   id: string;
-  holdExtensionId: string;
+  holdExtensionId?: string;
+  twilioCallSid?: string;
   status: string;
   holdStartedAt: string | null;
   liveDetectedAt: string | null;
@@ -21,11 +24,13 @@ interface CallLegRowProps {
   index: number;
 }
 
-interface DetectionResult {
-  shouldTransfer: boolean;
+interface AIDetectionStatus {
+  legId: string;
+  callSid: string;
+  status: string;
+  message: string;
   confidence: number;
-  reason: string;
-  strategiesPassed: string[];
+  timestamp: number;
 }
 
 function formatTimestamp(timestamp: string | null): string {
@@ -46,93 +51,173 @@ function calculateDuration(start: string | null, end: string | null): string {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
-function LiveDetectionIndicator({ leg }: { leg: CallLeg }) {
-  const { data: detection } = useQuery<DetectionResult>({
-    queryKey: ['detection', leg.id],
-    queryFn: () => fetch(`/api/jobs/legs/${leg.id}/detection-status`).then(r => r.json()),
-    refetchInterval: (leg.status === 'ANSWERED' || leg.status === 'HOLDING') ? 2000 : false,
-    enabled: leg.status === 'ANSWERED' || leg.status === 'HOLDING'
-  });
-
-  if (!detection || leg.status === 'LIVE' || leg.status === 'TRANSFERRED' || leg.status === 'ENDED') {
-    return null;
-  }
-
-  const confidencePercent = Math.round(detection.confidence * 100);
-  const confidenceColor = 
-    confidencePercent >= 70 ? 'text-green-600' :
-    confidencePercent >= 40 ? 'text-yellow-600' : 'text-gray-500';
-
-  return (
-    <div className={`text-xs ${confidenceColor} mt-1`}>
-      <div className="font-medium">Confidence: {confidencePercent}%</div>
-      <div className="text-gray-500">{detection.strategiesPassed.join(', ') || 'Waiting...'}</div>
-    </div>
-  );
-}
-
 export function CallLegRow({ leg, jobId, isWinner, index }: CallLegRowProps) {
   const queryClient = useQueryClient();
-  const [isLive, setIsLive] = useState(false);
+  const { socket } = useSocket();
+  const [aiStatus, setAiStatus] = useState<AIDetectionStatus | null>(null);
 
+  // Listen for AI detection updates via Socket.io
   useEffect(() => {
-    setIsLive(leg.status === 'LIVE' || leg.status === 'TRANSFERRED');
-  }, [leg.status]);
+    if (!socket) return;
+    
+    const handleAIDetection = (data: AIDetectionStatus) => {
+      if (data.legId === leg.id) {
+        setAiStatus(data);
+      }
+    };
+    
+    socket.on('ai-detection', handleAIDetection);
+    
+    return () => {
+      socket.off('ai-detection', handleAIDetection);
+    };
+  }, [socket, leg.id]);
 
-  const confirmLive = useMutation({
-    mutationFn: () => 
-      fetch(`/api/jobs/${jobId}/legs/${leg.id}/confirm-live`, { 
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      }).then(r => r.json()),
+  const manualTransfer = useMutation({
+    mutationFn: () =>
+      fetch(`/webhooks/twilio/trigger-transfer/${leg.twilioCallSid}`, {
+        method: 'POST'
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['job', jobId] });
     }
   });
 
-  const showConfirmButton = 
+  const showManualTransfer = 
     (leg.status === 'ANSWERED' || leg.status === 'HOLDING') && 
     !isWinner &&
-    !confirmLive.isPending;
+    leg.twilioCallSid &&
+    !manualTransfer.isPending;
 
   return (
-    <tr className={isWinner ? 'bg-yellow-50' : ''}>
-      <td className="px-4 py-3 text-sm text-gray-900">
+    <tr className={isWinner ? 'bg-yellow-50 border-l-4 border-l-yellow-500' : 'border-b hover:bg-gray-50'}>
+      {/* Leg Number */}
+      <td className="px-4 py-3 text-sm text-gray-900 font-medium">
         {index + 1}
       </td>
-      <td className="px-4 py-3 text-sm font-mono text-gray-600">
-        {leg.holdExtensionId}
-      </td>
+      
+      {/* Extension/Twilio ID */}
       <td className="px-4 py-3 text-sm">
-        <StatusBadge status={leg.status} isWinner={isWinner} />
-        <LiveDetectionIndicator leg={leg} />
+        {leg.twilioCallSid ? (
+          <div>
+            <div className="font-mono text-blue-600">Twilio</div>
+            <div className="text-xs text-gray-500 font-mono">{leg.twilioCallSid.slice(-8)}</div>
+          </div>
+        ) : (
+          <div className="text-gray-400">N/A</div>
+        )}
       </td>
+      
+      {/* Status with AI Detection */}
+      <td className="px-4 py-3 text-sm">
+        <div className="space-y-2">
+          {/* Main Status Badge */}
+          <div className="flex items-center gap-2">
+            <StatusBadge status={leg.status} isWinner={isWinner} />
+            {leg.status === 'ANSWERED' && (
+              <span className="inline-flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+                <span className="animate-pulse">🔵</span>
+                <span className="font-medium">Live Streaming</span>
+              </span>
+            )}
+          </div>
+          
+          {/* AI Detection Status */}
+          {aiStatus && (
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 text-sm">
+                {aiStatus.status === 'hold_music' && <span>🎵</span>}
+                {aiStatus.status === 'silence' && <span>🤫</span>}
+                {aiStatus.status === 'detecting_agent' && <span className="animate-pulse">🎯</span>}
+                {aiStatus.status === 'transferring' && <span>✅</span>}
+                {aiStatus.status === 'too_busy' && <span>❌</span>}
+                {aiStatus.status === 'voicemail' && <span>🤖</span>}
+                <span className="font-medium">{aiStatus.message}</span>
+              </div>
+              
+              {/* Confidence Bar */}
+              {aiStatus.confidence > 0 && aiStatus.status !== 'voicemail' && aiStatus.status !== 'too_busy' && (
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                    <div 
+                      className={`h-full rounded-full transition-all duration-300 ${
+                        aiStatus.confidence >= 0.6 ? 'bg-green-500 animate-pulse' :
+                        aiStatus.confidence >= 0.3 ? 'bg-yellow-500' :
+                        'bg-blue-500'
+                      }`}
+                      style={{ width: `${Math.min(aiStatus.confidence * 100, 100)}%` }}
+                    />
+                  </div>
+                  <span className={`text-xs font-mono font-bold w-12 ${
+                    aiStatus.confidence >= 0.6 ? 'text-green-600' :
+                    aiStatus.confidence >= 0.3 ? 'text-yellow-600' :
+                    'text-blue-600'
+                  }`}>
+                    {Math.min(Math.round(aiStatus.confidence * 100), 100)}%
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </td>
+      
+      {/* Hold Started */}
       <td className="px-4 py-3 text-sm text-gray-600">
         {formatTimestamp(leg.holdStartedAt)}
       </td>
+      
+      {/* Live Detected */}
       <td className="px-4 py-3 text-sm text-gray-600">
         {formatTimestamp(leg.liveDetectedAt)}
       </td>
-      <td className="px-4 py-3 text-sm text-gray-600">
+      
+      {/* Duration */}
+      <td className="px-4 py-3 text-sm text-gray-600 font-mono">
         {calculateDuration(leg.holdStartedAt, leg.liveDetectedAt || leg.endedAt)}
       </td>
+      
+      {/* Last Event */}
       <td className="px-4 py-3 text-sm text-gray-500">
         {leg.lastEventType || '-'}
       </td>
+      
+      {/* Actions */}
       <td className="px-4 py-3">
-        {showConfirmButton && (
-          <button
-            onClick={() => confirmLive.mutate()}
-            disabled={confirmLive.isPending}
-            className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white text-xs px-3 py-1 rounded font-medium transition-colors"
-            title="Manually confirm this is a live agent"
-          >
-            ✓ Confirm Live
-          </button>
-        )}
-        {confirmLive.isPending && (
-          <span className="text-xs text-gray-500">Transferring...</span>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Listen to this leg */}
+          {leg.status === 'ANSWERED' && leg.twilioCallSid && (
+            <div className="flex-shrink-0">
+              <LiveAudioPlayer 
+                jobId={jobId} 
+                legId={leg.id}
+                compact={true}
+              />
+            </div>
+          )}
+          
+          {/* Transfer button */}
+          {showManualTransfer && (
+            <button
+              onClick={() => manualTransfer.mutate()}
+              disabled={manualTransfer.isPending}
+              className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white text-xs px-3 py-1.5 rounded-md font-medium transition-all shadow-sm hover:shadow-md disabled:opacity-50 flex items-center gap-1.5 whitespace-nowrap"
+              title="Transfer this call to your RingCentral queue"
+            >
+              {manualTransfer.isPending ? (
+                <>
+                  <span className="animate-spin">⏳</span>
+                  <span>Transferring...</span>
+                </>
+              ) : (
+                <>
+                  <span>🎯</span>
+                  <span>Transfer Now</span>
+                </>
+              )}
+            </button>
+          )}
+        </div>
       </td>
     </tr>
   );

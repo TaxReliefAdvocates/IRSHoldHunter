@@ -14,9 +14,6 @@ class ExtensionService {
       
       let syncedCount = 0;
       
-      // Helper function to delay between API calls
-      const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-      
       for (const ext of data.records) {
         // Check if extension already exists
         const existing = await store.getExtension(ext.id);
@@ -25,9 +22,6 @@ class ExtensionService {
         let deviceId: string | undefined;
         if (ext.type === 'User' && ext.status === 'Enabled') {
           try {
-            // Add 100ms delay between device API calls to respect rate limits
-            await delay(100);
-            
             const devicesResponse = await platform.get(`/restapi/v1.0/account/~/extension/${ext.id}/device`);
             const devicesData: any = await devicesResponse.json();
             // Use the first active device
@@ -212,39 +206,36 @@ class ExtensionService {
   }
 
   // Sync real-time extension status from RingCentral
-  // Only syncs the authenticated user's extension to avoid rate limits
   async syncExtensionStatus(): Promise<void> {
-    try {
-      // Get authenticated user info
-      const userDataStr = await store.getConfig('rc_authenticated_user');
-      if (!userDataStr) {
-        logger.warn('⚠️ No authenticated user found, skipping status sync');
-        return;
+    const extensions = await store.getAllExtensions();
+    
+    logger.info('🔄 Syncing real-time extension status from RingCentral...');
+    
+    let synced = 0;
+    let failed = 0;
+    
+    for (const ext of extensions) {
+      try {
+        // Check real RingCentral status
+        const isAvailable = await rcService.isExtensionAvailable(ext.id);
+        const presence = await rcService.getExtensionPresence(ext.id);
+        
+        // Update Redis with actual status
+        await store.updateExtension(ext.id, {
+          rcPresenceStatus: presence.presenceStatus,
+          rcTelephonyStatus: presence.telephonyStatus,
+          isActuallyAvailable: isAvailable,
+          lastStatusCheck: new Date().toISOString()
+        });
+        
+        synced++;
+      } catch (error: any) {
+        failed++;
+        logger.debug(`Failed to check status for ext ${ext.extensionNumber}: ${error.message}`);
       }
-      
-      const userData = JSON.parse(userDataStr);
-      const extensionId = userData.extensionId;
-      
-      logger.info(`🔄 Syncing status for extension ${userData.extensionNumber}...`);
-      
-      // Make single presence call (includes telephony status)
-      const presence = await rcService.getExtensionPresence(extensionId);
-      const activeCalls = await rcService.getActiveCallsForExtension(extensionId);
-      const isAvailable = activeCalls.length === 0 && presence.telephonyStatus === 'NoCall';
-      
-      // Update Redis with actual status
-      await store.updateExtension(extensionId, {
-        rcPresenceStatus: presence.presenceStatus,
-        rcTelephonyStatus: presence.telephonyStatus,
-        isActuallyAvailable: isAvailable,
-        lastStatusCheck: new Date().toISOString()
-      });
-      
-      logger.info(`✅ Extension status synced: ${userData.extensionNumber}`);
-    } catch (error: any) {
-      logger.error('❌ Failed to sync extension status:', error);
-      throw error;
     }
+    
+    logger.info(`✅ Extension status sync complete: ${synced} synced, ${failed} failed`);
   }
 
   // Clean up stuck extensions (extensions marked in-use but job is done)

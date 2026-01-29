@@ -1,6 +1,7 @@
 import { useJob } from '../hooks/useJob';
 import { CallLegRow } from './CallLegRow';
 import { StatusBadge } from './StatusBadge';
+import { LiveAudioPlayer } from './LiveAudioPlayer';
 
 interface ActiveJobProps {
   jobId: string;
@@ -83,6 +84,15 @@ export function ActiveJob({ jobId, onNewJob }: ActiveJobProps) {
             )}
           </div>
         )}
+      </div>
+
+      {/* Live Audio Player */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">🎧 Live Audio Monitor</h3>
+        <LiveAudioPlayer jobId={job.id} />
+        <p className="text-xs text-gray-500 mt-2">
+          Listen to the live audio stream to hear what the AI is detecting in real-time.
+        </p>
       </div>
 
       {/* Call Legs Table */}
