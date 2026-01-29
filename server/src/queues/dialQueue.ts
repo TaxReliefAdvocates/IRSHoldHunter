@@ -74,6 +74,26 @@ dialQueue.on('waiting', (jobId) => {
 // Log queue initialization
 logger.info('📞 Dial queue processor initialized (5 workers, 2 calls/sec limit)');
 
+// Log queue stats every 5 seconds for debugging
+setInterval(async () => {
+  try {
+    const counts = await dialQueue.getJobCounts();
+    if (counts.waiting > 0 || counts.active > 0 || counts.delayed > 0) {
+      logger.info(`📊 Queue stats: waiting=${counts.waiting}, active=${counts.active}, delayed=${counts.delayed}, completed=${counts.completed}, failed=${counts.failed}`);
+    }
+  } catch (error) {
+    logger.error('Failed to get queue stats:', error);
+  }
+}, 5000);
+
+dialQueue.on('error', (error) => {
+  logger.error('❌ [Queue] Queue error:', error);
+});
+
+dialQueue.on('stalled', (job) => {
+  logger.warn(`⚠️  [Queue] Job ${job.id} stalled - will retry`);
+});
+
 dialQueue.on('failed', async (job, err) => {
   logger.error(`❌ [Queue] Dial job ${job?.id} failed:`, err);
   

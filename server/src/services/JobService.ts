@@ -110,10 +110,12 @@ class JobService {
       
       // Queue dial jobs with staggered delays to respect Twilio rate limits (2 calls/sec)
       // For 22 calls: spread over ~11 seconds (500ms between each)
+      logger.info(`🚀 Queueing ${legs.length} calls to dial queue...`);
+      
       for (let i = 0; i < legs.length; i++) {
         const delay = i * 500; // 500ms stagger = 2 calls per second
         
-        await dialQueue.add(
+        const queueJob = await dialQueue.add(
           {
             legId: legs[i].id,
             jobId: job.id,
@@ -131,9 +133,13 @@ class JobService {
         );
         
         logger.info(
-          `📞 Leg ${i + 1}/${lineCount} queued via Twilio, delay=${(delay / 1000).toFixed(1)}s`
+          `📞 Leg ${i + 1}/${lineCount} queued (Job ID: ${queueJob.id}, delay=${(delay / 1000).toFixed(1)}s)`
         );
       }
+      
+      // Check queue stats immediately after queuing
+      const queueCounts = await dialQueue.getJobCounts();
+      logger.info(`📊 Queue status after queuing: waiting=${queueCounts.waiting}, delayed=${queueCounts.delayed}, active=${queueCounts.active}`);
       
       logger.info(`✅ Job ${job.id} started with ${lineCount} Twilio lines`);
       
