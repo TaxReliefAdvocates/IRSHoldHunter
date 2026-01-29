@@ -37,17 +37,15 @@ const server = http.createServer(app);
 // Initialize WebSocket support - MUST pass the server instance!
 const wsInstance = expressWs(app as any, server as any);
 
-// Initialize Socket.io with optimized settings
+// Initialize Socket.io with WebSocket-only mode (more stable)
 export const io = new Server(server, {
   cors: {
     origin: process.env.CLIENT_URL || 'http://localhost:5173',
     methods: ['GET', 'POST'],
     credentials: true,
   },
-  // Allow both transports, prefer WebSocket
-  transports: ['polling', 'websocket'],
-  // Allow upgrade to WebSocket after polling handshake
-  allowUpgrades: true,
+  // Use WebSocket only - no polling fallback (faster, more stable)
+  transports: ['websocket'],
   // Reduce ping interval to detect disconnects faster
   pingInterval: 25000,
   pingTimeout: 20000,
