@@ -241,12 +241,14 @@ export class AudioHandler {
       }
     }
     
-    // LAYER 5: Live agent speech detection
-    if (connection.holdMusicStoppedAt) {
+    // LAYER 5: Live agent speech detection (works with OR without hold music!)
+    // Start detecting after DTMF 2 is sent (either with or without hold music)
+    if (timeSinceDtmf2 > 15) {
       const { detected, confidence } = liveAgentDetector.analyzeForLiveAgent(
         connection.analysisHistory,
         connection.holdMusicStoppedAt,
-        connection.liveAgentConfidence
+        connection.liveAgentConfidence,
+        timeSinceDtmf2 // NEW: Pass timing for quick answer detection
       );
       
       connection.liveAgentConfidence = confidence;
@@ -269,12 +271,14 @@ export class AudioHandler {
         await this.triggerTransfer(callSid, confidence);
       }
       
-      // Reset if silence too long
-      const silenceDuration = (Date.now() - connection.holdMusicStoppedAt) / 1000;
-      if (silenceDuration > 6 && confidence < 0.5) {
-        logger.warn(`⚠️  Resetting - silence too long`);
-        connection.holdMusicStoppedAt = undefined;
-        connection.liveAgentConfidence = 0;
+      // Reset if silence too long (only if hold music was detected)
+      if (connection.holdMusicStoppedAt) {
+        const silenceDuration = (Date.now() - connection.holdMusicStoppedAt) / 1000;
+        if (silenceDuration > 6 && confidence < 0.5) {
+          logger.warn(`⚠️  Resetting - silence too long`);
+          connection.holdMusicStoppedAt = undefined;
+          connection.liveAgentConfidence = 0;
+        }
       }
     }
   }
