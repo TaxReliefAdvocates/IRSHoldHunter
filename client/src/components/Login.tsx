@@ -5,7 +5,7 @@ import { useEffect } from 'react';
 export function Login() {
   const { data: authStatus, refetch } = useQuery({
     queryKey: ['auth-status'],
-    queryFn: () => fetch('/oauth/status').then(r => r.json()),
+    queryFn: () => apiClient('/oauth/status').then(r => r.json()),
     refetchInterval: 5000, // Check every 5 seconds
   });
 
@@ -26,8 +26,8 @@ export function Login() {
   }, [refetch]);
 
   const handleLogin = () => {
-    // Redirect to OAuth authorize endpoint
-    window.location.href = '/oauth/authorize';
+    // Redirect to OAuth authorize endpoint on backend API
+    window.location.href = `${API_BASE_URL}/oauth/authorize`;
   };
 
   if (authStatus?.authenticated) {
