@@ -202,8 +202,19 @@ router.post('/trigger-transfer/:callSid', async (req: Request, res: Response) =>
     }
     
     const queue = await store.getQueue(job.queueId || 'queue-main');
-    if (!queue || !queue.phoneNumber) {
-      return res.status(400).json({ error: 'Queue not configured' });
+    if (!queue) {
+      logger.error(`❌ Queue not found: ${job.queueId}`);
+      return res.status(400).json({ error: 'Queue not found' });
+    }
+    
+    if (!queue.phoneNumber) {
+      logger.error(`❌ Queue "${queue.name}" (Ext ${queue.extensionNumber}) has no direct phone number assigned`);
+      logger.error(`   To enable transfers, assign a direct line to this queue in RingCentral Admin`);
+      return res.status(400).json({ 
+        error: `Queue "${queue.name}" has no direct phone number. Please assign a direct line in RingCentral.`,
+        queueName: queue.name,
+        extensionNumber: queue.extensionNumber
+      });
     }
     
     logger.info(`🎯 Manual transfer triggered for ${callSid}`);

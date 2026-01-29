@@ -97,9 +97,18 @@ export function CallLegRow({ leg, jobId, isWinner, index }: CallLegRowProps) {
     mutationFn: () =>
       apiClient(`/webhooks/twilio/trigger-transfer/${leg.twilioCallSid}`, {
         method: 'POST'
-      }),
+      }).then(r => r.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['job', jobId] });
+    },
+    onError: (error: any) => {
+      console.error('Transfer failed:', error);
+      // Parse error message if available
+      error.json?.().then((data: any) => {
+        alert(data.error || 'Transfer failed');
+      }).catch(() => {
+        alert('Transfer failed: ' + error.message);
+      });
     }
   });
 
