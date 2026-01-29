@@ -191,21 +191,32 @@ router.post('/trigger-transfer/:callSid', async (req: Request, res: Response) =>
   const { callSid } = req.params;
   
   try {
+    logger.info(`🎯 Manual transfer request for call: ${callSid}`);
+    
     const leg = await store.getCallLegByTwilioSid(callSid);
     if (!leg) {
+      logger.error(`❌ Call leg not found for SID: ${callSid}`);
       return res.status(404).json({ error: 'Call not found' });
     }
     
+    logger.info(`   Found leg: ${leg.id}, job: ${leg.jobId}`);
+    
     const job = await store.getJob(leg.jobId);
     if (!job) {
+      logger.error(`❌ Job not found: ${leg.jobId}`);
       return res.status(404).json({ error: 'Job not found' });
     }
+    
+    logger.info(`   Job queue ID: ${job.queueId || 'none'}`);
     
     const queue = await store.getQueue(job.queueId || 'queue-main');
     if (!queue) {
       logger.error(`❌ Queue not found: ${job.queueId}`);
       return res.status(400).json({ error: 'Queue not found' });
     }
+    
+    logger.info(`   Queue: "${queue.name}" (${queue.extensionNumber})`);
+    logger.info(`   Phone number: ${queue.phoneNumber || 'NONE'}`);
     
     if (!queue.phoneNumber) {
       logger.error(`❌ Queue "${queue.name}" (Ext ${queue.extensionNumber}) has no direct phone number assigned`);
@@ -217,7 +228,7 @@ router.post('/trigger-transfer/:callSid', async (req: Request, res: Response) =>
       });
     }
     
-    logger.info(`🎯 Manual transfer triggered for ${callSid}`);
+    logger.info(`🎯 Initiating transfer to ${queue.phoneNumber}...`);
     
     await store.updateCallLeg(leg.id, {
       status: 'LIVE',

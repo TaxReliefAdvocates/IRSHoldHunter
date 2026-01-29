@@ -94,21 +94,25 @@ export function CallLegRow({ leg, jobId, isWinner, index }: CallLegRowProps) {
   }, [socket, leg.id]);
 
   const manualTransfer = useMutation({
-    mutationFn: () =>
-      apiClient(`/webhooks/twilio/trigger-transfer/${leg.twilioCallSid}`, {
+    mutationFn: async () => {
+      const response = await apiClient(`/webhooks/twilio/trigger-transfer/${leg.twilioCallSid}`, {
         method: 'POST'
-      }).then(r => r.json()),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Transfer failed: ${response.status}`);
+      }
+      
+      return response.json();
+    },
     onSuccess: () => {
+      console.log('✅ Transfer initiated successfully');
       queryClient.invalidateQueries({ queryKey: ['job', jobId] });
     },
     onError: (error: any) => {
-      console.error('Transfer failed:', error);
-      // Parse error message if available
-      error.json?.().then((data: any) => {
-        alert(data.error || 'Transfer failed');
-      }).catch(() => {
-        alert('Transfer failed: ' + error.message);
-      });
+      console.error('❌ Transfer failed:', error);
+      alert(`Transfer failed: ${error.message || 'Unknown error'}`);
     }
   });
 
