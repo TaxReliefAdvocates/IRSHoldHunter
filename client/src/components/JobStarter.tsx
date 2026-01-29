@@ -66,19 +66,6 @@ export function JobStarter({ onJobStarted }: JobStarterProps) {
         </div>
 
         <div className="bg-white p-6 rounded-lg shadow">
-          {/* Twilio Banner */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <div className="flex items-center gap-3">
-              <span className="text-3xl">☁️</span>
-              <div>
-                <div className="font-semibold text-blue-900 text-lg">Powered by Twilio</div>
-                <div className="text-sm text-blue-700">
-                  No device limits • Scale to 50+ lines • Cloud-based reliability
-                </div>
-              </div>
-            </div>
-          </div>
-
           {/* Destination Selection */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
