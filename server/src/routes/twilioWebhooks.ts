@@ -3,6 +3,7 @@ import twilio from 'twilio';
 import { store, type LegStatus } from '../storage/RedisStore.js';
 import { twilioCallingService } from '../services/TwilioCallingService.js';
 import { audioHandler } from '../websocket/audioHandler.js';
+import rcService from '../services/RCService.js';
 import logger from '../config/logger.js';
 
 const router = express.Router();
