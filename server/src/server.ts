@@ -37,12 +37,25 @@ const server = http.createServer(app);
 // Initialize WebSocket support - MUST pass the server instance!
 const wsInstance = expressWs(app as any, server as any);
 
-// Initialize Socket.io
+// Initialize Socket.io with optimized settings
 export const io = new Server(server, {
   cors: {
     origin: process.env.CLIENT_URL || 'http://localhost:5173',
     methods: ['GET', 'POST'],
+    credentials: true,
   },
+  // Optimize transports - prefer WebSocket
+  transports: ['websocket', 'polling'],
+  // Reduce ping interval to detect disconnects faster
+  pingInterval: 25000,
+  pingTimeout: 20000,
+  // Connection state recovery
+  connectionStateRecovery: {
+    maxDisconnectionDuration: 2 * 60 * 1000, // 2 minutes
+    skipMiddlewares: true,
+  },
+  // Limit max payload size
+  maxHttpBufferSize: 1e6, // 1 MB
 });
 
 // Make io available to audio handler

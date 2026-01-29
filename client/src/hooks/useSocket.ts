@@ -15,14 +15,21 @@ export function useSocket() {
     // Create singleton socket instance
     if (!socketInstance) {
       socketInstance = io(SOCKET_URL, {
+        // Force WebSocket only (no polling fallback)
+        transports: ['websocket'],
+        // Reconnection settings
         reconnection: true,
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
         reconnectionAttempts: Infinity,
+        // Upgrade immediately to WebSocket
+        upgrade: false,
+        // Connection timeout
+        timeout: 20000,
       });
 
       socketInstance.on('connect', () => {
-        console.log('✅ Socket connected');
+        console.log('✅ Socket connected via WebSocket');
         setIsConnected(true);
       });
 
