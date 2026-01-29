@@ -40,33 +40,44 @@ router.post('/dial-callback', async (req: Request, res: Response) => {
 
 // Main call flow handler - IRS sequence
 router.post('/call-flow', async (req: Request, res: Response) => {
-  const { CallSid } = req.body;
-  const twiml = new VoiceResponse();
-  
-  logger.info(`📞 Call flow started for ${CallSid}`);
-  
-  // STEP 1: Start audio streaming immediately
-  const webhookBase = process.env.WEBHOOK_BASE_URL!.replace('https://', '').replace('http://', '');
-  const wsUrl = `wss://${webhookBase}/websocket/audio`;
-  
-  logger.info(`🎵 Setting up audio stream for ${CallSid}`);
-  logger.info(`   WebSocket URL: ${wsUrl}`);
-  
-  const connect = twiml.connect();
-  connect.stream({
-    url: wsUrl,
-    track: 'inbound_track'
-  });
-  
-  // STEP 2: Keep call alive
-  twiml.pause({ length: 3600 });
-  
-  // Send TwiML response immediately (don't block on Redis/DB)
-  res.type('text/xml');
-  res.send(twiml.toString());
-  
-  // STEP 3: Get settings and schedule DTMF in background
-  setImmediate(async () => {
+  try {
+    const { CallSid } = req.body;
+    const twiml = new VoiceResponse();
+    
+    logger.info(`📞 Call flow webhook received for ${CallSid || 'UNKNOWN'}`);
+    logger.info(`📋 Request body: ${JSON.stringify(req.body)}`);
+    
+    if (!CallSid) {
+      logger.error('❌ No CallSid in request body!');
+      return res.status(400).send('Missing CallSid');
+    }
+    
+    logger.info(`✅ Call flow started for ${CallSid}`);
+    
+    // STEP 1: Start audio streaming immediately
+    const webhookBase = process.env.WEBHOOK_BASE_URL!.replace('https://', '').replace('http://', '');
+    const wsUrl = `wss://${webhookBase}/websocket/audio`;
+    
+    logger.info(`🎵 Setting up audio stream for ${CallSid}`);
+    logger.info(`   WebSocket URL: ${wsUrl}`);
+    
+    const connect = twiml.connect();
+    connect.stream({
+      url: wsUrl,
+      track: 'inbound_track'
+    });
+    
+    // STEP 2: Keep call alive
+    twiml.pause({ length: 3600 });
+    
+    // Send TwiML response immediately (don't block on Redis/DB)
+    res.type('text/xml');
+    res.send(twiml.toString());
+    
+    logger.info(`✅ TwiML response sent for ${CallSid}`);
+    
+    // STEP 3: Get settings and schedule DTMF in background
+    setImmediate(async () => {
     try {
       // Get DTMF settings from Redis (or fall back to env vars)
       const settings = await store.getSystemSettings();
@@ -143,6 +154,10 @@ router.post('/call-flow', async (req: Request, res: Response) => {
       logger.error('Failed to setup call flow:', error);
     }
   });
+  } catch (error) {
+    logger.error(`❌ Call flow error for ${req.body?.CallSid}:`, error);
+    res.status(500).send('Internal error');
+  }
 });
 
 // Status callback - track call state
