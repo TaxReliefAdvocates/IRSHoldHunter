@@ -220,12 +220,21 @@ class RCService {
       
       // 1. Try phone-number endpoint first (most reliable)
       if (phoneNumbers.length > 0) {
-        // Look for CallQueue or DirectNumber type
-        const queueNumber = phoneNumbers.find((p: any) => 
-          p.usageType === 'CallQueue' || p.usageType === 'DirectNumber'
-        ) || phoneNumbers[0];
-        phoneNumber = queueNumber.phoneNumber;
-        logger.info(`✅ Found phone number from phone-number endpoint: ${phoneNumber} (type: ${queueNumber.usageType})`);
+        // Look for primary phone number or CallQueue type first
+        const primaryNumber = phoneNumbers.find((p: any) => p.primary === true);
+        const queueNumber = phoneNumbers.find((p: any) => p.usageType === 'CallQueue');
+        const directNumber = phoneNumbers.find((p: any) => p.usageType === 'DirectNumber');
+        
+        // Priority: primary > CallQueue > DirectNumber > first available
+        const selectedNumber = primaryNumber || queueNumber || directNumber || phoneNumbers[0];
+        phoneNumber = selectedNumber.phoneNumber;
+        
+        logger.info(`✅ Found phone number: ${phoneNumber} (type: ${selectedNumber.usageType}, primary: ${!!selectedNumber.primary})`);
+        
+        // Log all available numbers for debugging
+        if (phoneNumbers.length > 1) {
+          logger.info(`📋 Available numbers (${phoneNumbers.length}): ${phoneNumbers.slice(0, 5).map((p: any) => `${p.phoneNumber} (${p.usageType}${p.primary ? ', primary' : ''})`).join(', ')}${phoneNumbers.length > 5 ? '...' : ''}`);
+        }
       }
       
       // 2. Fallback to other sources
