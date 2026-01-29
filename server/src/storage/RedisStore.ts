@@ -80,6 +80,14 @@ export interface DestinationConfig {
   createdAt: string;
 }
 
+export interface SystemSettings {
+  dtmf1Delay: number;      // Seconds to wait before pressing first DTMF
+  dtmf1Digit: string;      // Which digit to press (usually "1")
+  dtmf2Delay: number;      // Seconds to wait AFTER dtmf1 before pressing second DTMF
+  dtmf2Digit: string;      // Which digit to press (usually "2")
+  updatedAt: string;
+}
+
 export interface JobWithLegs extends Job {
   callLegs: CallLeg[];
 }
@@ -428,6 +436,36 @@ export class RedisStore {
     await this.redis.del(`destination:${destinationId}`);
     await this.redis.srem('destinations', destinationId);
     logger.info(`Destination deleted: ${destinationId}`);
+  }
+
+  // System Settings operations
+  async getSystemSettings(): Promise<SystemSettings> {
+    const data = await this.redis.get('system:settings');
+    if (data) {
+      return JSON.parse(data);
+    }
+    
+    // Return defaults from env vars if not set
+    return {
+      dtmf1Delay: parseInt(process.env.IRS_FIRST_DTMF_DELAY_SECONDS || '15'),
+      dtmf1Digit: process.env.IRS_FIRST_DTMF || '1',
+      dtmf2Delay: parseInt(process.env.IRS_SECOND_DTMF_DELAY_SECONDS || '250'),
+      dtmf2Digit: process.env.IRS_SECOND_DTMF || '2',
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  async saveSystemSettings(settings: Partial<SystemSettings>): Promise<SystemSettings> {
+    const current = await this.getSystemSettings();
+    const updated: SystemSettings = {
+      ...current,
+      ...settings,
+      updatedAt: new Date().toISOString()
+    };
+    
+    await this.redis.set('system:settings', JSON.stringify(updated));
+    logger.info(`System settings updated:`, updated);
+    return updated;
   }
 }
 

@@ -26,6 +26,14 @@ interface QueueConfig {
   lastUsed?: string;
 }
 
+interface SystemSettings {
+  dtmf1Delay: number;
+  dtmf1Digit: string;
+  dtmf2Delay: number;
+  dtmf2Digit: string;
+  updatedAt: string;
+}
+
 export function Settings() {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
@@ -55,8 +63,20 @@ export function Settings() {
     queryFn: () => apiClient('/api/queues').then(r => r.json())
   });
 
+  const { data: systemSettings, isLoading: settingsLoading } = useQuery({
+    queryKey: ['system-settings'],
+    queryFn: () => apiClient('/api/settings').then(r => r.json())
+  });
+
   const [editingQueue, setEditingQueue] = useState<string | null>(null);
   const [queuePhoneNumber, setQueuePhoneNumber] = useState('');
+  
+  const [dtmfSettings, setDtmfSettings] = useState({
+    dtmf1Delay: 15,
+    dtmf1Digit: '1',
+    dtmf2Delay: 250,
+    dtmf2Digit: '2'
+  });
 
   const createDestination = useMutation({
     mutationFn: (data: any) =>
@@ -124,6 +144,23 @@ export function Settings() {
       setQueuePhoneNumber('');
     }
   });
+
+  const updateSystemSettings = useMutation({
+    mutationFn: (settings: Partial<SystemSettings>) =>
+      apiClient('/api/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings)
+      }).then(r => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['system-settings'] });
+    }
+  });
+
+  // Update local state when settings load
+  if (systemSettings && !dtmfSettings.dtmf1Delay) {
+    setDtmfSettings(systemSettings);
+  }
 
   if (isLoading) {
     return <div className="p-4">Loading settings...</div>;
@@ -449,6 +486,115 @@ export function Settings() {
             <div className="text-xs text-gray-500">Your phone (for testing)</div>
           </button>
         </div>
+      </div>
+
+      {/* Transfer Queue Settings */}
+      <div className="mt-8">
+        <h2 className="text-2xl font-bold mb-4">IRS Call Flow Settings</h2>
+        
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <h3 className="font-medium text-blue-900 mb-2">⌨️ DTMF Button Press Timing</h3>
+          <ul className="text-sm text-blue-700 space-y-1">
+            <li>• Configure when the system automatically presses buttons during IRS calls</li>
+            <li>• DTMF 1 Delay: Seconds to wait before pressing first button (usually "1" for English)</li>
+            <li>• DTMF 2 Delay: Additional seconds to wait AFTER button 1 before pressing button 2</li>
+            <li>• Total time = DTMF 1 Delay + DTMF 2 Delay</li>
+          </ul>
+        </div>
+
+        {settingsLoading ? (
+          <div className="text-gray-500">Loading settings...</div>
+        ) : (
+          <div className="bg-white rounded-lg shadow p-6 mb-8">
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  DTMF 1 - First Button
+                </label>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Button to Press</label>
+                    <input
+                      type="text"
+                      value={dtmfSettings.dtmf1Digit}
+                      onChange={(e) => setDtmfSettings({ ...dtmfSettings, dtmf1Digit: e.target.value })}
+                      maxLength={1}
+                      className="w-20 px-3 py-2 border rounded font-mono text-center"
+                      placeholder="1"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Delay (seconds)</label>
+                    <input
+                      type="number"
+                      value={dtmfSettings.dtmf1Delay}
+                      onChange={(e) => setDtmfSettings({ ...dtmfSettings, dtmf1Delay: parseInt(e.target.value) || 0 })}
+                      min={0}
+                      max={600}
+                      className="w-32 px-3 py-2 border rounded"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Pressed at {dtmfSettings.dtmf1Delay}s ({Math.floor(dtmfSettings.dtmf1Delay / 60)}:{String(dtmfSettings.dtmf1Delay % 60).padStart(2, '0')})
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  DTMF 2 - Second Button
+                </label>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Button to Press</label>
+                    <input
+                      type="text"
+                      value={dtmfSettings.dtmf2Digit}
+                      onChange={(e) => setDtmfSettings({ ...dtmfSettings, dtmf2Digit: e.target.value })}
+                      maxLength={1}
+                      className="w-20 px-3 py-2 border rounded font-mono text-center"
+                      placeholder="2"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Delay After DTMF 1 (seconds)</label>
+                    <input
+                      type="number"
+                      value={dtmfSettings.dtmf2Delay}
+                      onChange={(e) => setDtmfSettings({ ...dtmfSettings, dtmf2Delay: parseInt(e.target.value) || 0 })}
+                      min={0}
+                      max={600}
+                      className="w-32 px-3 py-2 border rounded"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Total: {dtmfSettings.dtmf1Delay + dtmfSettings.dtmf2Delay}s ({Math.floor((dtmfSettings.dtmf1Delay + dtmfSettings.dtmf2Delay) / 60)}:{String((dtmfSettings.dtmf1Delay + dtmfSettings.dtmf2Delay) % 60).padStart(2, '0')})
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 pt-6 border-t">
+              <div className="bg-gray-50 p-4 rounded mb-4">
+                <h4 className="text-sm font-medium text-gray-900 mb-2">Timeline Preview:</h4>
+                <div className="text-sm text-gray-700 space-y-1 font-mono">
+                  <div>🔹 00:00 - Call connects</div>
+                  <div>🔹 {Math.floor(dtmfSettings.dtmf1Delay / 60)}:{String(dtmfSettings.dtmf1Delay % 60).padStart(2, '0')} - Press "{dtmfSettings.dtmf1Digit}" (DTMF 1)</div>
+                  <div>🔹 {Math.floor((dtmfSettings.dtmf1Delay + dtmfSettings.dtmf2Delay) / 60)}:{String((dtmfSettings.dtmf1Delay + dtmfSettings.dtmf2Delay) % 60).padStart(2, '0')} - Press "{dtmfSettings.dtmf2Digit}" (DTMF 2)</div>
+                  <div>🔹 Start listening for live agent...</div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => updateSystemSettings.mutate(dtmfSettings)}
+                disabled={updateSystemSettings.isPending}
+                className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
+              >
+                {updateSystemSettings.isPending ? 'Saving...' : 'Save DTMF Settings'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Transfer Queue Settings */}

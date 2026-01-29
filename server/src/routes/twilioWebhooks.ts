@@ -45,10 +45,17 @@ router.post('/call-flow', async (req: Request, res: Response) => {
   
   logger.info(`📞 Call flow started for ${CallSid}`);
   
-  // STEP 1: Wait for IRS greeting (15 seconds), then press '1'
-  const firstDelay = parseInt(process.env.IRS_FIRST_DTMF_DELAY_SECONDS || '15');
-  const firstDigit = process.env.IRS_FIRST_DTMF || '1';
+  // Get DTMF settings from Redis (or fall back to env vars)
+  const settings = await store.getSystemSettings();
+  const firstDelay = settings.dtmf1Delay;
+  const firstDigit = settings.dtmf1Digit;
+  const secondDelay = settings.dtmf2Delay;
+  const secondDigit = settings.dtmf2Digit;
+  const totalDelay = firstDelay + secondDelay;
   
+  logger.info(`⚙️  DTMF Settings: '${firstDigit}' at ${firstDelay}s, '${secondDigit}' at ${totalDelay}s total`);
+  
+  // STEP 1: Wait for IRS greeting, then press first digit
   setTimeout(async () => {
     try {
       logger.info(`⏰ ${firstDelay}s elapsed, pressing '${firstDigit}' on ${CallSid}`);
@@ -85,11 +92,7 @@ router.post('/call-flow', async (req: Request, res: Response) => {
   // STEP 3: Keep call alive
   twiml.pause({ length: 3600 });
   
-  // STEP 4: Schedule second DTMF (150 seconds AFTER first DTMF)
-  const secondDelay = parseInt(process.env.IRS_SECOND_DTMF_DELAY_SECONDS || '150');
-  const secondDigit = process.env.IRS_SECOND_DTMF || '2';
-  const totalDelay = firstDelay + secondDelay;
-  
+  // STEP 4: Schedule second DTMF
   setTimeout(async () => {
     try {
       logger.info(`⏰ ${totalDelay}s elapsed (${secondDelay}s after DTMF 1), pressing '${secondDigit}' on ${CallSid}`);
