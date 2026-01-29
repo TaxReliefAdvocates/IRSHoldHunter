@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiClient } from '../lib/api';
 
 interface DestinationConfig {
   id: string;
@@ -31,17 +32,17 @@ export function Settings() {
 
   const { data: destinations, isLoading } = useQuery({
     queryKey: ['destinations'],
-    queryFn: () => fetch('/api/destinations').then(r => r.json())
+    queryFn: () => apiClient('/api/destinations').then(r => r.json())
   });
 
   const { data: stats } = useQuery({
     queryKey: ['destination-stats'],
-    queryFn: () => fetch('/api/destinations/stats').then(r => r.json())
+    queryFn: () => apiClient('/api/destinations/stats').then(r => r.json())
   });
 
   const createDestination = useMutation({
     mutationFn: (data: any) =>
-      fetch('/api/destinations', {
+      apiClient('/api/destinations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -65,7 +66,7 @@ export function Settings() {
 
   const setDefault = useMutation({
     mutationFn: (destinationId: string) =>
-      fetch(`/api/destinations/${destinationId}/set-default`, { method: 'POST' }).then(r => r.json()),
+      apiClient(`/api/destinations/${destinationId}/set-default`, { method: 'POST' }).then(r => r.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['destinations'] });
       queryClient.invalidateQueries({ queryKey: ['default-destination'] });
@@ -74,7 +75,7 @@ export function Settings() {
 
   const toggleActive = useMutation({
     mutationFn: (dest: DestinationConfig) =>
-      fetch(`/api/destinations/${dest.id}`, {
+      apiClient(`/api/destinations/${dest.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isActive: !dest.isActive })
@@ -86,7 +87,7 @@ export function Settings() {
 
   const deleteDestination = useMutation({
     mutationFn: (destinationId: string) =>
-      fetch(`/api/destinations/${destinationId}`, { method: 'DELETE' }),
+      apiClient(`/api/destinations/${destinationId}`, { method: 'DELETE' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['destinations'] });
     }

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { QueueSelector } from './QueueSelector';
+import { apiClient } from '../lib/api';
 
 interface JobStarterProps {
   onJobStarted: (jobId: string) => void;
@@ -14,12 +15,12 @@ export function JobStarter({ onJobStarted }: JobStarterProps) {
 
   const { data: destinations } = useQuery({
     queryKey: ['destinations', { active: true }],
-    queryFn: () => fetch('/api/destinations?active=true').then(r => r.json())
+    queryFn: () => apiClient('/api/destinations?active=true').then(r => r.json())
   });
 
   const { data: defaultDestination } = useQuery({
     queryKey: ['default-destination'],
-    queryFn: () => fetch('/api/destinations/default').then(r => r.json()).catch(() => null)
+    queryFn: () => apiClient('/api/destinations/default').then(r => r.json()).catch(() => null)
   });
 
   const startJobMutation = useMutation({
@@ -31,7 +32,7 @@ export function JobStarter({ onJobStarted }: JobStarterProps) {
         throw new Error('Enter a phone number or configure a destination');
       }
 
-      const response = await fetch('/api/jobs/start', {
+      const response = await apiClient('/api/jobs/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
