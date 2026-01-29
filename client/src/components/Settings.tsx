@@ -71,6 +71,15 @@ export function Settings() {
   const [editingQueue, setEditingQueue] = useState<string | null>(null);
   const [queuePhoneNumber, setQueuePhoneNumber] = useState('');
   
+  const [editingDestination, setEditingDestination] = useState<string | null>(null);
+  const [editDestData, setEditDestData] = useState({
+    name: '',
+    phoneNumber: '',
+    description: '',
+    category: '',
+    recommendedLineCount: 6
+  });
+  
   const [dtmfSettings, setDtmfSettings] = useState({
     dtmf1Delay: 15,
     dtmf1Digit: '1',
@@ -142,6 +151,26 @@ export function Settings() {
       queryClient.invalidateQueries({ queryKey: ['queues'] });
       setEditingQueue(null);
       setQueuePhoneNumber('');
+    }
+  });
+
+  const updateDestination = useMutation({
+    mutationFn: ({ destId, updates }: { destId: string; updates: any }) =>
+      apiClient(`/api/destinations/${destId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      }).then(r => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['destinations'] });
+      setEditingDestination(null);
+      setEditDestData({
+        name: '',
+        phoneNumber: '',
+        description: '',
+        category: '',
+        recommendedLineCount: 6
+      });
     }
   });
 
@@ -359,26 +388,82 @@ export function Settings() {
                 {destinations.map((dest: DestinationConfig) => (
                   <tr key={dest.id}>
                     <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                      {dest.name}
-                      {dest.description && (
-                        <div className="text-xs text-gray-500">{dest.description}</div>
+                      {editingDestination === dest.id ? (
+                        <div className="space-y-1">
+                          <input
+                            type="text"
+                            value={editDestData.name}
+                            onChange={(e) => setEditDestData({ ...editDestData, name: e.target.value })}
+                            className="w-full px-2 py-1 border rounded text-sm"
+                            placeholder="Name"
+                          />
+                          <input
+                            type="text"
+                            value={editDestData.description}
+                            onChange={(e) => setEditDestData({ ...editDestData, description: e.target.value })}
+                            className="w-full px-2 py-1 border rounded text-xs text-gray-500"
+                            placeholder="Description (optional)"
+                          />
+                        </div>
+                      ) : (
+                        <>
+                          {dest.name}
+                          {dest.description && (
+                            <div className="text-xs text-gray-500">{dest.description}</div>
+                          )}
+                        </>
                       )}
                     </td>
                     <td className="px-4 py-3 text-sm font-mono text-gray-600">
-                      {dest.phoneNumber}
+                      {editingDestination === dest.id ? (
+                        <input
+                          type="tel"
+                          value={editDestData.phoneNumber}
+                          onChange={(e) => setEditDestData({ ...editDestData, phoneNumber: e.target.value })}
+                          className="w-full px-2 py-1 border rounded text-sm font-mono"
+                          placeholder="+18008291040"
+                        />
+                      ) : (
+                        dest.phoneNumber
+                      )}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">
-                      <span className="inline-block px-2 py-1 text-xs bg-gray-100 rounded">
-                        {dest.category}
-                      </span>
+                      {editingDestination === dest.id ? (
+                        <select
+                          value={editDestData.category}
+                          onChange={(e) => setEditDestData({ ...editDestData, category: e.target.value })}
+                          className="w-full px-2 py-1 border rounded text-xs"
+                        >
+                          <option value="IRS">IRS</option>
+                          <option value="Support">Customer Support</option>
+                          <option value="Sales">Sales</option>
+                          <option value="Testing">Testing</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      ) : (
+                        <span className="inline-block px-2 py-1 text-xs bg-gray-100 rounded">
+                          {dest.category}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600 text-center">
-                      {dest.recommendedLineCount || 6}
+                      {editingDestination === dest.id ? (
+                        <input
+                          type="number"
+                          value={editDestData.recommendedLineCount}
+                          onChange={(e) => setEditDestData({ ...editDestData, recommendedLineCount: parseInt(e.target.value) || 6 })}
+                          className="w-16 px-2 py-1 border rounded text-sm text-center"
+                          min="1"
+                          max="70"
+                        />
+                      ) : (
+                        dest.recommendedLineCount || 6
+                      )}
                     </td>
                     <td className="px-4 py-3 text-sm">
                       <button
                         onClick={() => toggleActive.mutate(dest)}
-                        disabled={toggleActive.isPending}
+                        disabled={toggleActive.isPending || editingDestination === dest.id}
                         className={`text-xs px-2 py-1 rounded ${
                           dest.isActive
                             ? 'bg-green-100 text-green-700'
@@ -394,7 +479,7 @@ export function Settings() {
                       ) : (
                         <button
                           onClick={() => setDefault.mutate(dest.id)}
-                          disabled={setDefault.isPending}
+                          disabled={setDefault.isPending || editingDestination === dest.id}
                           className="text-blue-600 hover:text-blue-700 text-sm disabled:text-gray-400"
                         >
                           Set as Default
@@ -407,16 +492,65 @@ export function Settings() {
                         : 'Never'}
                     </td>
                     <td className="px-4 py-3 text-sm">
-                      <button
-                        onClick={() => {
-                          if (confirm(`Delete ${dest.name}?`)) {
-                            deleteDestination.mutate(dest.id);
-                          }
-                        }}
-                        className="text-red-600 hover:text-red-700 text-sm"
-                      >
-                        Delete
-                      </button>
+                      {editingDestination === dest.id ? (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              updateDestination.mutate({ 
+                                destId: dest.id, 
+                                updates: editDestData 
+                              });
+                            }}
+                            disabled={updateDestination.isPending || !editDestData.name || !editDestData.phoneNumber}
+                            className="text-blue-600 hover:text-blue-700 text-sm disabled:text-gray-400"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingDestination(null);
+                              setEditDestData({
+                                name: '',
+                                phoneNumber: '',
+                                description: '',
+                                category: '',
+                                recommendedLineCount: 6
+                              });
+                            }}
+                            className="text-gray-600 hover:text-gray-700 text-sm"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              setEditingDestination(dest.id);
+                              setEditDestData({
+                                name: dest.name,
+                                phoneNumber: dest.phoneNumber,
+                                description: dest.description || '',
+                                category: dest.category || 'IRS',
+                                recommendedLineCount: dest.recommendedLineCount || 6
+                              });
+                            }}
+                            className="text-blue-600 hover:text-blue-700 text-sm"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (confirm(`Delete ${dest.name}?`)) {
+                                deleteDestination.mutate(dest.id);
+                              }
+                            }}
+                            className="text-red-600 hover:text-red-700 text-sm"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
