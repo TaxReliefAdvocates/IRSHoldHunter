@@ -8,6 +8,7 @@ import type { JobWithLegs } from '../types/index.js';
 
 interface StartJobRequest {
   destinationId?: string;
+  manualDestination?: string; // NEW: allow manual phone entry
   queueId?: string;
   lineCount?: number;
   poolName?: string;
@@ -32,15 +33,25 @@ class JobService {
         if (!destinationConfig) {
           throw new Error(`Destination ${request.destinationId} not found`);
         }
+      } else if (request.manualDestination) {
+        // NEW: Use manually entered phone number
+        destinationConfig = {
+          id: 'manual',
+          name: 'Manual Entry',
+          phoneNumber: request.manualDestination,
+          isDefault: false,
+          isActive: true,
+          createdAt: Date.now()
+        };
       } else {
         // Use default destination
         destinationConfig = await store.getDefaultDestination();
         if (!destinationConfig) {
-          throw new Error('No default destination configured. Please select a destination.');
+          throw new Error('No destination configured. Enter a phone number or configure in Settings.');
         }
       }
       
-      // Get queue details
+      // Get queue details - MAKE OPTIONAL
       let queueConfig;
       
       if (request.queueId) {
@@ -49,15 +60,21 @@ class JobService {
           throw new Error(`Queue ${request.queueId} not found`);
         }
       } else {
-        // Use default queue
+        // Try to get default queue, but don't require it
         queueConfig = await store.getDefaultQueue();
         if (!queueConfig) {
-          throw new Error('No default queue configured. Please select a queue or run /api/queues/sync');
+          // Create a dummy queue config if none available
+          queueConfig = {
+            id: 'none',
+            name: 'No Queue',
+            phoneNumber: process.env.QUEUE_E164 || '+18885551234',
+            extensionId: 'none',
+            extensionNumber: 'none',
+            isDefault: false,
+            createdAt: Date.now()
+          };
+          logger.warn('⚠️  No queue configured - using default from QUEUE_E164');
         }
-      }
-      
-      if (!queueConfig.phoneNumber) {
-        throw new Error(`Queue "${queueConfig.name}" has no phone number configured`);
       }
       
       logger.info(`🚀 Starting new job: calling ${destinationConfig.phoneNumber} with ${lineCount} lines via Twilio`);
