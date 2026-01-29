@@ -78,6 +78,7 @@ app.use('/api/extensions', extensionsRouter);
 app.use('/api/queues', queuesRouter);
 app.use('/api/destinations', destinationsRouter);
 app.use('/api/settings', (await import('./routes/settings.js')).default);
+app.use('/api/calls', (await import('./routes/calls.js')).default);
 app.use('/', healthRouter); // Health check for Render
 
 // WebSocket endpoint for Twilio audio streaming

@@ -2,6 +2,7 @@ import { useJob } from '../hooks/useJob';
 import { CallLegRow } from './CallLegRow';
 import { StatusBadge } from './StatusBadge';
 import { apiClient } from '../lib/api';
+import { useEffect } from 'react';
 
 interface ActiveJobProps {
   jobId: string;
@@ -10,6 +11,21 @@ interface ActiveJobProps {
 
 export function ActiveJob({ jobId, onNewJob }: ActiveJobProps) {
   const { data: job, isLoading, error } = useJob(jobId);
+
+  // Warn user before leaving page with active calls
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (job && job.status === 'RUNNING') {
+        const message = 'You have active calls running. Are you sure you want to leave? All calls will continue running.';
+        e.preventDefault();
+        e.returnValue = message;
+        return message;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [job]);
 
   if (isLoading) {
     return (
@@ -150,7 +166,18 @@ export function ActiveJob({ jobId, onNewJob }: ActiveJobProps) {
         {job.status === 'RUNNING' && (
           <button
             onClick={async () => {
-              await apiClient(`/api/jobs/${job.id}/stop`, { method: 'POST' });
+              const confirmed = confirm(
+                `⚠️ This will stop the job and hang up all ${job.callLegs.length} active calls.\n\nAre you sure?`
+              );
+              
+              if (confirmed) {
+                try {
+                  await apiClient(`/api/jobs/${job.id}/stop`, { method: 'POST' });
+                } catch (error) {
+                  console.error('Failed to stop job:', error);
+                  alert('Failed to stop job. Please try again.');
+                }
+              }
             }}
             className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors"
           >

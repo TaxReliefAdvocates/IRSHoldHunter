@@ -116,6 +116,29 @@ export function CallLegRow({ leg, jobId, isWinner, index }: CallLegRowProps) {
     }
   });
 
+  const hangUp = useMutation({
+    mutationFn: async () => {
+      const response = await apiClient(`/api/calls/${leg.twilioCallSid}/hangup`, {
+        method: 'POST'
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Hangup failed: ${response.status}`);
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      console.log('✅ Call hung up successfully');
+      queryClient.invalidateQueries({ queryKey: ['job', jobId] });
+    },
+    onError: (error: any) => {
+      console.error('❌ Hangup failed:', error);
+      alert(`Hangup failed: ${error.message || 'Unknown error'}`);
+    }
+  });
+
   const showManualTransfer = 
     (leg.status === 'ANSWERED' || leg.status === 'HOLDING') && 
     !isWinner &&
@@ -271,6 +294,35 @@ export function CallLegRow({ leg, jobId, isWinner, index }: CallLegRowProps) {
                 compact={true}
               />
             </div>
+          )}
+          
+          {/* Hang Up button */}
+          {leg.twilioCallSid && leg.status !== 'ENDED' && leg.status !== 'FAILED' && (
+            <button
+              onClick={() => {
+                const confirmed = confirm(
+                  `⚠️ This will immediately hang up this call.\n\nAre you sure?`
+                );
+                if (confirmed) {
+                  hangUp.mutate();
+                }
+              }}
+              disabled={hangUp.isPending}
+              className="bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white text-xs px-3 py-1.5 rounded-md font-medium transition-all shadow-sm hover:shadow-md disabled:opacity-50 flex items-center gap-1.5 whitespace-nowrap"
+              title="Hang up this call immediately"
+            >
+              {hangUp.isPending ? (
+                <>
+                  <span className="animate-spin">⏳</span>
+                  <span>Ending...</span>
+                </>
+              ) : (
+                <>
+                  <span>📞</span>
+                  <span>Hang Up</span>
+                </>
+              )}
+            </button>
           )}
           
           {/* Transfer button */}
