@@ -217,30 +217,29 @@ router.post('/trigger-transfer/:callSid', async (req: Request, res: Response) =>
     }
     
     logger.info(`   Queue: "${queue.name}" (${queue.extensionNumber})`);
-    logger.info(`   Cached phone: ${queue.phoneNumber || 'NONE - will fetch fresh'}`);
+    logger.info(`   Configured phone: ${queue.phoneNumber || 'NONE'}`);
     
-    // Check for manual override first
-    const manualQueuePhone = process.env.QUEUE_PHONE_OVERRIDE;
-    if (manualQueuePhone) {
-      logger.info(`✅ Using MANUAL override number: ${manualQueuePhone}`);
-      phoneNumber = manualQueuePhone;
-    } else {
-      // ALWAYS fetch fresh from RingCentral (cache might be stale)
-      logger.info(`🔄 Fetching FRESH phone number from RingCentral...`);
+    let phoneNumber = queue.phoneNumber; // Use configured number first
+    
+    // If no phone number configured, try to fetch from RingCentral
+    if (!phoneNumber) {
+      logger.info(`🔄 No phone number configured, fetching from RingCentral...`);
       try {
         const freshQueueDetails = await rcService.getQueueDetails(queue.id);
         phoneNumber = freshQueueDetails.phoneNumber;
         
         if (phoneNumber) {
-          logger.info(`✅ Found phone number from fresh fetch: ${phoneNumber}`);
-          // Update cache
+          logger.info(`✅ Found phone number from RingCentral: ${phoneNumber}`);
+          // Update cache for future use
           await store.saveQueue({ ...queue, phoneNumber });
         } else {
-          logger.error(`❌ No phone number found in fresh fetch`);
+          logger.warn(`⚠️  No phone number found from RingCentral`);
         }
       } catch (error) {
-        logger.error(`Failed to fetch fresh queue details:`, error);
+        logger.error(`Failed to fetch queue details from RingCentral:`, error);
       }
+    } else {
+      logger.info(`✅ Using configured phone number: ${phoneNumber}`);
     }
     
     // Determine transfer method

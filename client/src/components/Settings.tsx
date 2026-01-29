@@ -16,6 +16,16 @@ interface DestinationConfig {
   createdAt: string;
 }
 
+interface QueueConfig {
+  id: string;
+  name: string;
+  phoneNumber: string;
+  extensionNumber: string;
+  isDefault: boolean;
+  tags: string[];
+  lastUsed?: string;
+}
+
 export function Settings() {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
@@ -39,6 +49,14 @@ export function Settings() {
     queryKey: ['destination-stats'],
     queryFn: () => apiClient('/api/destinations/stats').then(r => r.json())
   });
+
+  const { data: queues, isLoading: queuesLoading } = useQuery({
+    queryKey: ['queues'],
+    queryFn: () => apiClient('/api/queues').then(r => r.json())
+  });
+
+  const [editingQueue, setEditingQueue] = useState<string | null>(null);
+  const [queuePhoneNumber, setQueuePhoneNumber] = useState('');
 
   const createDestination = useMutation({
     mutationFn: (data: any) =>
@@ -90,6 +108,20 @@ export function Settings() {
       apiClient(`/api/destinations/${destinationId}`, { method: 'DELETE' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['destinations'] });
+    }
+  });
+
+  const updateQueuePhone = useMutation({
+    mutationFn: ({ queueId, phoneNumber }: { queueId: string; phoneNumber: string }) =>
+      apiClient(`/api/queues/${queueId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneNumber })
+      }).then(r => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['queues'] });
+      setEditingQueue(null);
+      setQueuePhoneNumber('');
     }
   });
 
@@ -417,6 +449,119 @@ export function Settings() {
             <div className="text-xs text-gray-500">Your phone (for testing)</div>
           </button>
         </div>
+      </div>
+
+      {/* Transfer Queue Settings */}
+      <div className="mt-8">
+        <h2 className="text-2xl font-bold mb-4">Transfer Queue Settings</h2>
+        
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <h3 className="font-medium text-blue-900 mb-2">📞 Configure Queue Transfer Numbers</h3>
+          <ul className="text-sm text-blue-700 space-y-1">
+            <li>• Set direct phone numbers for your RingCentral queues</li>
+            <li>• When a live agent is detected, calls will transfer to this number</li>
+            <li>• If not set, the system will attempt to find the number automatically</li>
+            <li>• Format: +1234567890 (E.164 format with country code)</li>
+          </ul>
+        </div>
+
+        {queuesLoading ? (
+          <div className="text-gray-500">Loading queues...</div>
+        ) : queues && queues.length > 0 ? (
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Queue Name
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Extension
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Transfer Phone Number
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {queues.map((queue: QueueConfig) => (
+                  <tr key={queue.id}>
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                      {queue.name}
+                      {queue.isDefault && (
+                        <span className="ml-2 text-xs text-green-600">⭐ Default</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600 font-mono">
+                      {queue.extensionNumber}
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      {editingQueue === queue.id ? (
+                        <input
+                          type="tel"
+                          value={queuePhoneNumber}
+                          onChange={(e) => setQueuePhoneNumber(e.target.value)}
+                          placeholder="+19492268820"
+                          className="w-full px-2 py-1 border rounded font-mono text-sm"
+                          autoFocus
+                        />
+                      ) : (
+                        <span className={`font-mono ${queue.phoneNumber ? 'text-gray-900' : 'text-gray-400'}`}>
+                          {queue.phoneNumber || 'Not set (auto-detect)'}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      {editingQueue === queue.id ? (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => updateQueuePhone.mutate({ queueId: queue.id, phoneNumber: queuePhoneNumber })}
+                            disabled={updateQueuePhone.isPending || !queuePhoneNumber}
+                            className="text-blue-600 hover:text-blue-700 disabled:text-gray-400"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingQueue(null);
+                              setQueuePhoneNumber('');
+                            }}
+                            className="text-gray-600 hover:text-gray-700"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setEditingQueue(queue.id);
+                            setQueuePhoneNumber(queue.phoneNumber || '');
+                          }}
+                          className="text-blue-600 hover:text-blue-700"
+                        >
+                          {queue.phoneNumber ? 'Edit' : 'Set Number'}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="bg-white p-8 rounded-lg shadow text-center">
+            <div className="text-4xl mb-4">📋</div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No Queues Found
+            </h3>
+            <p className="text-gray-600">
+              Authenticate with RingCentral to sync your call queues
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

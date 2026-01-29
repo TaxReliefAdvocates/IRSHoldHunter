@@ -75,7 +75,7 @@ router.post('/sync', async (req: Request, res: Response) => {
   }
 });
 
-// PATCH /api/queues/:id - Update queue config
+// PATCH /api/queues/:id - Update queue config (including phone number)
 router.patch('/:id', async (req: Request, res: Response) => {
   try {
     const queue = await store.getQueue(req.params.id);
@@ -86,9 +86,10 @@ router.patch('/:id', async (req: Request, res: Response) => {
     const updates = {
       ...queue,
       ...req.body,
-      id: queue.id, // Don't allow changing ID
-      phoneNumber: queue.phoneNumber // Don't allow changing phone number
+      id: queue.id // Don't allow changing ID
     };
+    
+    logger.info(`📞 Updating queue ${queue.name}: phoneNumber=${updates.phoneNumber || 'not set'}`);
     
     await store.saveQueue(updates);
     res.json(updates);
