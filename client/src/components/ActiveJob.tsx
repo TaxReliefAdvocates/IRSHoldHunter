@@ -1,6 +1,7 @@
 import { useJob } from '../hooks/useJob';
 import { CallLegRow } from './CallLegRow';
 import { StatusBadge } from './StatusBadge';
+import { apiClient } from '../lib/api';
 
 interface ActiveJobProps {
   jobId: string;
@@ -149,7 +150,7 @@ export function ActiveJob({ jobId, onNewJob }: ActiveJobProps) {
         {job.status === 'RUNNING' && (
           <button
             onClick={async () => {
-              await fetch(`/api/jobs/${job.id}/stop`, { method: 'POST' });
+              await apiClient(`/api/jobs/${job.id}/stop`, { method: 'POST' });
             }}
             className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors"
           >

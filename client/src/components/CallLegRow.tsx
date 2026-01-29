@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { StatusBadge } from './StatusBadge';
 import { useSocket } from '../hooks/useSocket';
 import { LiveAudioPlayer } from './LiveAudioPlayer';
+import { apiClient } from '../lib/api';
 
 interface CallLeg {
   id: string;
@@ -94,7 +95,7 @@ export function CallLegRow({ leg, jobId, isWinner, index }: CallLegRowProps) {
 
   const manualTransfer = useMutation({
     mutationFn: () =>
-      fetch(`/webhooks/twilio/trigger-transfer/${leg.twilioCallSid}`, {
+      apiClient(`/webhooks/twilio/trigger-transfer/${leg.twilioCallSid}`, {
         method: 'POST'
       }),
     onSuccess: () => {
