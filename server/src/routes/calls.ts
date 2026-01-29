@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
 import logger from '../config/logger.js';
-import twilioCallingService from '../services/TwilioCallingService.js';
+import { twilioCallingService } from '../services/TwilioCallingService.js';
 import { store } from '../storage/RedisStore.js';
 
 const router = express.Router();
