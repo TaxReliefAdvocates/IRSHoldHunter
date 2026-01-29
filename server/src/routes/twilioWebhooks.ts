@@ -45,26 +45,6 @@ router.post('/call-flow', async (req: Request, res: Response) => {
   
   logger.info(`📞 Call flow started for ${CallSid}`);
   
-  // Update status to ANSWERED when call-flow webhook fires
-  const leg = await store.getCallLegByTwilioSid(CallSid);
-  if (leg) {
-    await store.updateCallLeg(leg.id, {
-      status: 'ANSWERED',
-      holdStartedAt: new Date().toISOString(),
-      lastEventAt: new Date().toISOString(),
-      lastEventType: 'call-flow-started'
-    });
-    
-    // Emit socket update
-    const io = (req.app as any).get('io');
-    if (io) {
-      io.to(`job:${leg.jobId}`).emit('leg-update', {
-        legId: leg.id,
-        status: 'ANSWERED'
-      });
-    }
-  }
-  
   // STEP 1: Wait for IRS greeting (15 seconds), then press '1'
   const firstDelay = parseInt(process.env.IRS_FIRST_DTMF_DELAY_SECONDS || '15');
   const firstDigit = process.env.IRS_FIRST_DTMF || '1';
@@ -105,10 +85,10 @@ router.post('/call-flow', async (req: Request, res: Response) => {
   // STEP 3: Keep call alive
   twiml.pause({ length: 3600 });
   
-  // STEP 4: Schedule second DTMF (45 seconds AFTER first DTMF)
-  const secondDelay = parseInt(process.env.IRS_SECOND_DTMF_DELAY_SECONDS || '45');
+  // STEP 4: Schedule second DTMF (150 seconds AFTER first DTMF)
+  const secondDelay = parseInt(process.env.IRS_SECOND_DTMF_DELAY_SECONDS || '150');
   const secondDigit = process.env.IRS_SECOND_DTMF || '2';
-  const totalDelay = firstDelay + secondDelay; // 15 + 45 = 60 seconds total
+  const totalDelay = firstDelay + secondDelay;
   
   setTimeout(async () => {
     try {
@@ -130,8 +110,35 @@ router.post('/call-flow', async (req: Request, res: Response) => {
     }
   }, totalDelay * 1000);
   
+  // Send TwiML response immediately (don't block on DB updates)
   res.type('text/xml');
   res.send(twiml.toString());
+  
+  // Update status in background after response is sent
+  setImmediate(async () => {
+    try {
+      const leg = await store.getCallLegByTwilioSid(CallSid);
+      if (leg) {
+        await store.updateCallLeg(leg.id, {
+          status: 'ANSWERED',
+          holdStartedAt: new Date().toISOString(),
+          lastEventAt: new Date().toISOString(),
+          lastEventType: 'call-flow-started'
+        });
+        
+        // Emit socket update
+        const io = (req.app as any).get('io');
+        if (io) {
+          io.to(`job:${leg.jobId}`).emit('leg-update', {
+            legId: leg.id,
+            status: 'ANSWERED'
+          });
+        }
+      }
+    } catch (error) {
+      logger.error('Failed to update call-flow status:', error);
+    }
+  });
 });
 
 // Status callback - track call state
