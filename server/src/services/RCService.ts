@@ -204,19 +204,40 @@ class RCService {
       const extResponse = await platform.get(`/restapi/v1.0/account/~/extension/${queueId}`);
       const extData: any = await extResponse.json();
       
-      // Log COMPLETE response to find the phone number
-      logger.info(`📞 COMPLETE Queue API Response:`, JSON.stringify(queueData, null, 2));
-      logger.info(`📞 COMPLETE Extension API Response:`, JSON.stringify(extData, null, 2));
+      // Get phone numbers from extension's phone-number endpoint (most reliable)
+      let phoneNumbers = [];
+      try {
+        const phoneNumbersResponse = await platform.get(`/restapi/v1.0/account/~/extension/${queueId}/phone-number`);
+        const phoneNumbersData: any = await phoneNumbersResponse.json();
+        phoneNumbers = phoneNumbersData.records || [];
+        logger.info(`📞 Found ${phoneNumbers.length} phone numbers for queue ${queueId}`);
+      } catch (error) {
+        logger.warn(`Could not fetch phone numbers for queue ${queueId}:`, error);
+      }
       
-      // Try ALL possible phone number fields
-      const phoneNumber = queueData.phoneNumber || 
-                         extData.contact?.businessPhone || 
-                         extData.contact?.phoneNumbers?.[0]?.phoneNumber ||
-                         extData.phoneNumbers?.[0]?.phoneNumber ||
-                         extData.contact?.companyPhone ||
-                         queueData.directNumber ||
-                         queueData.mainNumber ||
-                         '';
+      // Extract phone number - try multiple sources
+      let phoneNumber = '';
+      
+      // 1. Try phone-number endpoint first (most reliable)
+      if (phoneNumbers.length > 0) {
+        // Look for CallQueue or DirectNumber type
+        const queueNumber = phoneNumbers.find((p: any) => 
+          p.usageType === 'CallQueue' || p.usageType === 'DirectNumber'
+        ) || phoneNumbers[0];
+        phoneNumber = queueNumber.phoneNumber;
+        logger.info(`✅ Found phone number from phone-number endpoint: ${phoneNumber} (type: ${queueNumber.usageType})`);
+      }
+      
+      // 2. Fallback to other sources
+      if (!phoneNumber) {
+        phoneNumber = queueData.phoneNumber || 
+                     extData.contact?.businessPhone || 
+                     extData.phoneNumbers?.[0]?.phoneNumber ||
+                     '';
+        if (phoneNumber) {
+          logger.info(`✅ Found phone number from fallback: ${phoneNumber}`);
+        }
+      }
       
       const queueDetails = {
         id: queueData.id || extData.id,
