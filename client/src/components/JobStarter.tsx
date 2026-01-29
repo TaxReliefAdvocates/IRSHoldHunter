@@ -11,7 +11,6 @@ export function JobStarter({ onJobStarted }: JobStarterProps) {
   const [lineCount, setLineCount] = useState(6);
   const [selectedDestinationId, setSelectedDestinationId] = useState<string>();
   const [selectedQueueId, setSelectedQueueId] = useState<string>();
-  const [manualPhone, setManualPhone] = useState('');
 
   const { data: destinations } = useQuery({
     queryKey: ['destinations', { active: true }],
@@ -27,9 +26,8 @@ export function JobStarter({ onJobStarted }: JobStarterProps) {
     mutationFn: async () => {
       const effectiveDestinationId = selectedDestinationId || defaultDestination?.id;
       
-      // Allow manual phone entry if no destination configured
-      if (!effectiveDestinationId && !manualPhone) {
-        throw new Error('Enter a phone number or configure a destination');
+      if (!effectiveDestinationId) {
+        throw new Error('Please add a destination in Settings first');
       }
 
       const response = await apiClient('/api/jobs/start', {
@@ -37,7 +35,6 @@ export function JobStarter({ onJobStarted }: JobStarterProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           destinationId: effectiveDestinationId,
-          manualDestination: manualPhone || undefined,
           lineCount,
           queueId: selectedQueueId || undefined
         })
@@ -85,43 +82,45 @@ export function JobStarter({ onJobStarted }: JobStarterProps) {
           {/* Destination Selection */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Transfer Destination Number:
+              Call Destination Number:
             </label>
-            
-            {(!destinations || destinations.length === 0) ? (
-              <div>
-                <input
-                  type="tel"
-                  value={manualPhone}
-                  onChange={e => setManualPhone(e.target.value)}
-                  placeholder="+18885551234"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
-                <div className="mt-2 text-sm text-gray-600">
-                  Enter phone number in E.164 format (e.g., +18885551234)
-                </div>
-              </div>
-            ) : (
-              <>
-                <select
-                  value={selectedDestinationId || defaultDestination?.id || ''}
-                  onChange={e => setSelectedDestinationId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                >
+            <select
+              value={selectedDestinationId || defaultDestination?.id || ''}
+              onChange={e => setSelectedDestinationId(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            >
+              {!destinations || destinations.length === 0 ? (
+                <option value="">No destinations configured</option>
+              ) : (
+                <>
                   {destinations.map((dest: any) => (
                     <option key={dest.id} value={dest.id}>
                       {dest.name} ({dest.phoneNumber})
                       {dest.isDefault && ' ⭐ Default'}
                     </option>
                   ))}
-                </select>
-                <div className="mt-2 p-3 bg-gray-50 rounded-lg">
-                  <div className="text-sm text-gray-700">
-                    <strong>Will call:</strong>{' '}
-                    {destinations?.find((d: any) => d.id === (selectedDestinationId || defaultDestination?.id))?.phoneNumber || 'Select destination'}
-                  </div>
+                </>
+              )}
+            </select>
+
+            {!destinations || destinations.length === 0 ? (
+              <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-700">
+                ⚠️ No destinations configured.{' '}
+                <a href="/settings" className="text-blue-600 hover:underline font-medium">
+                  Go to Settings
+                </a>
+                {' '}to add phone numbers (IRS, your number, etc.)
+              </div>
+            ) : (
+              <div className="mt-2 p-3 bg-gray-50 rounded-lg">
+                <div className="text-sm text-gray-700">
+                  <strong>Will call:</strong>{' '}
+                  {destinations?.find((d: any) => d.id === (selectedDestinationId || defaultDestination?.id))?.phoneNumber || 'Select destination'}
                 </div>
-              </>
+                <div className="text-xs text-gray-500 mt-1">
+                  Add more destinations in Settings
+                </div>
+              </div>
             )}
           </div>
 
@@ -161,10 +160,12 @@ export function JobStarter({ onJobStarted }: JobStarterProps) {
           {/* Start Button */}
           <button
             onClick={() => startJobMutation.mutate()}
-            disabled={startJobMutation.isPending || lineCount < 1 || ((!destinations || destinations.length === 0) && !manualPhone)}
+            disabled={startJobMutation.isPending || lineCount < 1 || !destinations || destinations.length === 0}
             className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-4 px-6 rounded-lg transition-all text-lg disabled:cursor-not-allowed shadow-lg hover:shadow-xl disabled:shadow-none"
           >
-            {startJobMutation.isPending
+            {!destinations || destinations.length === 0
+              ? '⚙️ Add Destinations in Settings First'
+              : startJobMutation.isPending
               ? '⏳ Starting Hunt...'
               : `🚀 Start Hunt with ${lineCount} Line${lineCount !== 1 ? 's' : ''} (Twilio)`
             }
