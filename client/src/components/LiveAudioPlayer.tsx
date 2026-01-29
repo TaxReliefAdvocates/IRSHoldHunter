@@ -14,6 +14,9 @@ export function LiveAudioPlayer({ jobId, legId, compact = false }: LiveAudioPlay
   const audioContextRef = useRef<AudioContext | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
+  const audioQueueRef = useRef<Float32Array[]>([]);
+  const nextPlayTimeRef = useRef(0);
+  const isPlayingRef = useRef(false);
 
   useEffect(() => {
     if (!socket) return;
@@ -35,20 +38,18 @@ export function LiveAudioPlayer({ jobId, legId, compact = false }: LiveAudioPlay
         // Convert mulaw to linear PCM
         const pcmData = mulawToLinear(audioArray);
         
-        // Create audio buffer at 8kHz (no resampling - let browser handle it)
-        const audioBuffer = audioContextRef.current.createBuffer(
-          1, // mono
-          pcmData.length,
-          8000 // Keep at 8kHz - browser will resample automatically
-        );
+        // Add to queue
+        audioQueueRef.current.push(pcmData);
         
-        audioBuffer.getChannelData(0).set(pcmData);
-
-        // Play immediately
-        const source = audioContextRef.current.createBufferSource();
-        source.buffer = audioBuffer;
-        source.connect(gainNodeRef.current);
-        source.start(0); // Play ASAP
+        // Keep queue size reasonable (max 2 seconds of audio)
+        if (audioQueueRef.current.length > 100) {
+          audioQueueRef.current.shift();
+        }
+        
+        // Start playback if not already playing
+        if (!isPlayingRef.current) {
+          playNextChunk();
+        }
 
         // Update audio level visualization
         if (analyserRef.current) {
@@ -60,6 +61,48 @@ export function LiveAudioPlayer({ jobId, legId, compact = false }: LiveAudioPlay
       } catch (error) {
         console.error('Audio playback error:', error);
       }
+    };
+
+    const playNextChunk = () => {
+      if (!audioContextRef.current || !gainNodeRef.current || !isListening) {
+        isPlayingRef.current = false;
+        return;
+      }
+      
+      const chunk = audioQueueRef.current.shift();
+      if (!chunk) {
+        isPlayingRef.current = false;
+        return;
+      }
+
+      isPlayingRef.current = true;
+      const audioContext = audioContextRef.current;
+      
+      // Initialize play time on first chunk
+      if (nextPlayTimeRef.current === 0) {
+        nextPlayTimeRef.current = audioContext.currentTime + 0.05; // 50ms initial buffer
+      }
+      
+      // Schedule this chunk
+      const playTime = Math.max(audioContext.currentTime, nextPlayTimeRef.current);
+      const chunkDuration = chunk.length / 8000; // 8kHz sample rate
+      
+      // Create and play audio buffer
+      const audioBuffer = audioContext.createBuffer(1, chunk.length, 8000);
+      audioBuffer.getChannelData(0).set(chunk);
+      
+      const source = audioContext.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(gainNodeRef.current);
+      source.start(playTime);
+      
+      // Update next play time
+      nextPlayTimeRef.current = playTime + chunkDuration;
+      
+      // Schedule next chunk
+      source.onended = () => {
+        playNextChunk();
+      };
     };
 
     socket.on('audio-chunk', handleAudioChunk);
@@ -75,7 +118,7 @@ export function LiveAudioPlayer({ jobId, legId, compact = false }: LiveAudioPlay
     const gainNode = audioContext.createGain();
     const analyser = audioContext.createAnalyser();
     
-    gainNode.gain.value = 3.0; // Boost volume 3x for better clarity
+    gainNode.gain.value = 2.5; // Balanced volume boost
     analyser.fftSize = 256;
     
     gainNode.connect(analyser);
@@ -84,17 +127,25 @@ export function LiveAudioPlayer({ jobId, legId, compact = false }: LiveAudioPlay
     audioContextRef.current = audioContext;
     gainNodeRef.current = gainNode;
     analyserRef.current = analyser;
+    nextPlayTimeRef.current = 0; // Reset play time
+    audioQueueRef.current = []; // Clear any old audio
+    isPlayingRef.current = false;
 
     setIsListening(true);
   };
 
   const stopListening = () => {
+    isPlayingRef.current = false; // Stop playback immediately
+    
     if (audioContextRef.current) {
       audioContextRef.current.close();
       audioContextRef.current = null;
       gainNodeRef.current = null;
       analyserRef.current = null;
     }
+    
+    audioQueueRef.current = [];
+    nextPlayTimeRef.current = 0;
     setIsListening(false);
     setAudioLevel(0);
   };

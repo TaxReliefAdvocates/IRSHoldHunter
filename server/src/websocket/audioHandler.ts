@@ -88,18 +88,17 @@ export class AudioHandler {
     const audioChunk = Buffer.from(media.payload, 'base64');
     connection.audioBuffer.push(audioChunk);
     
-    // Forward audio to frontend for live listening (THROTTLED to ~20/sec per call for better quality)
-    const now = Date.now();
-    if (this.io && (!connection.lastAudioEmit || now - connection.lastAudioEmit >= 50)) {
+    // Forward audio to frontend for live listening (NO throttling for best quality)
+    // Twilio sends ~50 chunks/sec naturally, Socket.IO can handle it
+    if (this.io) {
       const leg = await store.getCallLegByTwilioSid(connection.callSid);
       if (leg) {
         this.io.to(`job:${leg.jobId}`).emit('audio-chunk', {
           legId: leg.id,
           callSid: connection.callSid,
           audio: media.payload, // base64 encoded
-          timestamp: now
+          timestamp: Date.now()
         });
-        connection.lastAudioEmit = now;
       }
     }
     
