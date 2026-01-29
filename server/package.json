@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc",
+    "build": "npm install --include=dev && tsc",
     "start": "node dist/server.js",
     "seed-queue": "tsx scripts/seed-queue.ts",
     "test-webhooks": "tsx scripts/test-webhooks.ts",
