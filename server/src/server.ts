@@ -18,6 +18,7 @@ import healthRouter from './routes/health.js';
 import destinationService from './services/DestinationService.js';
 import { store } from './storage/RedisStore.js';
 import { audioHandler } from './websocket/audioHandler.js';
+import './queues/dialQueue.js'; // 🔥 CRITICAL: Initialize Bull queue processor
 
 // ===== TWILIO-ONLY MODE =====
 // RingCentral is ONLY used for:

@@ -71,6 +71,9 @@ dialQueue.on('waiting', (jobId) => {
   logger.debug(`⏳ [Queue] Job ${jobId} is waiting`);
 });
 
+// Log queue initialization
+logger.info('📞 Dial queue processor initialized (5 workers, 2 calls/sec limit)');
+
 dialQueue.on('failed', async (job, err) => {
   logger.error(`❌ [Queue] Dial job ${job?.id} failed:`, err);
   
