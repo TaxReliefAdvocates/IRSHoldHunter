@@ -47,7 +47,9 @@ export class SpeechRecognitionService {
         vad_events: true,
         encoding: 'mulaw',
         sample_rate: 8000,
-        channels: 1
+        channels: 1,
+        // CRITICAL: Keep connection alive for long calls
+        keepalive: true
       });
 
       connection.on(LiveTranscriptionEvents.Open, () => {
@@ -68,6 +70,7 @@ export class SpeechRecognitionService {
 
       connection.on(LiveTranscriptionEvents.Error, (error: any) => {
         logger.error(`❌ Speech recognition error for ${callSid}:`, error);
+        // Don't delete connection on error - let it reconnect
       });
 
       connection.on(LiveTranscriptionEvents.Close, () => {

@@ -354,6 +354,44 @@ export class AudioHandler {
         }
       }
     }
+    
+    // LAYER 6: FALLBACK - Simple time-based detection (no DTMF 2 required!)
+    // If call is active for 20+ seconds with speech patterns but no transcript detection
+    if (!connection.transferTriggered && callDuration >= 20 && connection.analysisHistory.length >= 40) {
+      const recent = connection.analysisHistory.slice(-16); // Last 4 seconds
+      
+      if (recent.length >= 16) {
+        const avgVariance = recent.reduce((sum, a) => sum + a.variance, 0) / recent.length;
+        const avgEnergy = recent.reduce((sum, a) => sum + a.energy, 0) / recent.length;
+        
+        // Human speech characteristics (NOT music, NOT silence)
+        const isHumanSpeech = 
+          avgVariance > 80 && 
+          avgEnergy > 100 && 
+          avgEnergy < 400 &&
+          recent.filter(a => a.energy > 80).length >= 12;
+        
+        if (isHumanSpeech) {
+          logger.info(`🎯 FALLBACK DETECTION: Human speech at ${callDuration.toFixed(0)}s`);
+          logger.info(`   Energy: ${avgEnergy.toFixed(0)}, Variance: ${avgVariance.toFixed(0)}`);
+          
+          await this.emitDetectionLog(callSid, {
+            type: 'transfer',
+            message: `🎯 Live agent (fallback time-based detection)`,
+            data: { callDuration, avgEnergy, avgVariance, confidence: 0.75 }
+          });
+          
+          await this.emitStatus(callSid, {
+            status: 'live_agent_detected',
+            message: `🎯 Live agent detected (timing)`,
+            confidence: 0.75
+          });
+          
+          connection.transferTriggered = true;
+          await this.triggerTransfer(callSid, 0.75);
+        }
+      }
+    }
   }
 
   private async triggerTransfer(callSid: string, confidence: number) {
@@ -549,27 +587,61 @@ export class AudioHandler {
       }, 3000);
     }
     
-    // Detect live agent greetings
-    if (isFinal && (
-      lowerTranscript.includes('hello') ||
-      lowerTranscript.includes('how can i help') ||
-      lowerTranscript.includes('how may i help') ||
-      lowerTranscript.includes('speaking') ||
-      lowerTranscript.includes('this is')
-    )) {
-      logger.info(`🎯 Live agent greeting detected: "${transcript}"`);
+    // ENHANCED: Detect live agent greetings (works WITHOUT needing DTMF 2!)
+    if (isFinal) {
+      const callDuration = (Date.now() - connection.callAnsweredAt) / 1000;
       
-      if (!connection.transferTriggered && connection.dtmf2SentAt) {
-        connection.liveAgentConfidence = 0.95; // Very high confidence from speech
+      // Don't auto-transfer in first 10 seconds (avoid false positives from automated greetings)
+      if (callDuration < 10) {
+        return;
+      }
+      
+      // Comprehensive list of live agent trigger phrases
+      const agentPhrases = [
+        'may i help you',
+        'may i help',
+        'how can i help',
+        'how may i help',
+        'how may i assist',
+        'what can i do for you',
+        'how can i assist',
+        'badge id',
+        'badge number',
+        'my name is',
+        'this is',
+        'speaking',
+        'thank you for calling practitioner',
+        'practitioner priority line',
+        'hello',
+        'good morning',
+        'good afternoon'
+      ];
+      
+      const matchedPhrase = agentPhrases.find(phrase => lowerTranscript.includes(phrase));
+      
+      if (matchedPhrase) {
+        logger.info(`🎯 Live agent greeting detected: "${transcript}"`);
+        logger.info(`   Matched phrase: "${matchedPhrase}"`);
+        logger.info(`   Call duration: ${callDuration.toFixed(1)}s`);
         
-        await this.emitDetectionLog(callSid, {
-          type: 'transfer',
-          message: '🎯 Live agent detected from speech!',
-          data: { transcript, confidence: 0.95 }
-        });
-        
-        connection.transferTriggered = true;
-        await this.triggerTransfer(callSid, 0.95);
+        if (!connection.transferTriggered) {
+          connection.liveAgentConfidence = 1.0; // Very high confidence from speech
+          
+          await this.emitDetectionLog(callSid, {
+            type: 'transfer',
+            message: `🎯 Live agent detected: "${matchedPhrase}"`,
+            data: { transcript, confidence: 1.0, matchedPhrase, callDuration }
+          });
+          
+          await this.emitStatus(callSid, {
+            status: 'live_agent_detected',
+            message: `🎯 Live agent: "${matchedPhrase}"`,
+            confidence: 1.0
+          });
+          
+          connection.transferTriggered = true;
+          await this.triggerTransfer(callSid, 1.0);
+        }
       }
     }
   }
