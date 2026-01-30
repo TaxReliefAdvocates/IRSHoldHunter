@@ -18,13 +18,13 @@ export function useSocket() {
         // Allow both transports for better compatibility
         transports: ['polling', 'websocket'],
         upgrade: true,
-        // Reconnection settings
+        // Reconnection settings (AGGRESSIVE for stability)
         reconnection: true,
-        reconnectionDelay: 1000,
-        reconnectionDelayMax: 5000,
+        reconnectionDelay: 500, // Try reconnecting every 500ms
+        reconnectionDelayMax: 2000, // Max 2s between attempts
         reconnectionAttempts: Infinity,
-        // Connection timeout
-        timeout: 20000,
+        // INCREASED timeout to match server
+        timeout: 60000, // 60s (was 20s)
       });
 
       socketInstance.on('connect', () => {
@@ -32,13 +32,29 @@ export function useSocket() {
         setIsConnected(true);
       });
 
-      socketInstance.on('disconnect', () => {
-        console.log('❌ Socket disconnected');
+      socketInstance.on('disconnect', (reason) => {
+        console.log('❌ Socket disconnected:', reason);
         setIsConnected(false);
+        
+        // Auto-reconnect if disconnected by server
+        if (reason === 'io server disconnect' || reason === 'transport close') {
+          console.log('🔄 Forcing reconnect...');
+          socketInstance?.connect();
+        }
       });
 
       socketInstance.on('connect_error', (error) => {
         console.error('Socket connection error:', error);
+      });
+      
+      socketInstance.on('reconnect', (attemptNumber) => {
+        console.log(`✅ Socket reconnected after ${attemptNumber} attempts`);
+      });
+      
+      socketInstance.on('reconnect_attempt', (attemptNumber) => {
+        if (attemptNumber % 5 === 0) { // Log every 5 attempts
+          console.log(`🔄 Reconnect attempt #${attemptNumber}...`);
+        }
       });
     }
 

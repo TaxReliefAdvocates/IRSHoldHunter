@@ -8,6 +8,7 @@ interface TranscriptCallback {
 export class SpeechRecognitionService {
   private deepgramClient: any = null;
   private connections = new Map<string, any>();
+  private keepaliveIntervals = new Map<string, NodeJS.Timeout>();
   private transcriptCallbacks: TranscriptCallback[] = [];
   
   constructor() {
@@ -48,12 +49,25 @@ export class SpeechRecognitionService {
         encoding: 'mulaw',
         sample_rate: 8000,
         channels: 1,
-        // CRITICAL: Keep connection alive for long calls
         keepalive: true
       });
 
       connection.on(LiveTranscriptionEvents.Open, () => {
         logger.info(`🎤 Speech recognition connected: ${callSid}`);
+        
+        // CRITICAL: Send keepalive every 3 seconds to prevent timeout
+        const keepaliveInterval = setInterval(() => {
+          if (connection.getReadyState() === 1) {
+            try {
+              connection.keepAlive();
+              logger.debug(`💓 Keepalive sent for ${callSid}`);
+            } catch (err) {
+              logger.warn(`Failed to send keepalive for ${callSid}:`, err);
+            }
+          }
+        }, 3000);
+        
+        this.keepaliveIntervals.set(callSid, keepaliveInterval);
       });
 
       connection.on(LiveTranscriptionEvents.Transcript, (data: any) => {
@@ -74,8 +88,25 @@ export class SpeechRecognitionService {
       });
 
       connection.on(LiveTranscriptionEvents.Close, () => {
-        logger.info(`🎤 Speech recognition closed: ${callSid}`);
+        logger.warn(`⚠️  Speech recognition closed unexpectedly: ${callSid}`);
+        
+        // Clear keepalive interval
+        const interval = this.keepaliveIntervals.get(callSid);
+        if (interval) {
+          clearInterval(interval);
+          this.keepaliveIntervals.delete(callSid);
+        }
+        
         this.connections.delete(callSid);
+        
+        // AUTO-RECONNECT if connection closes unexpectedly
+        // Check if call is still active before reconnecting
+        setTimeout(() => {
+          if (!this.connections.has(callSid)) {
+            logger.info(`🔄 Auto-reconnecting speech recognition for ${callSid}`);
+            this.startTranscription(callSid);
+          }
+        }, 1000);
       });
 
       this.connections.set(callSid, connection);
@@ -96,6 +127,14 @@ export class SpeechRecognitionService {
     const connection = this.connections.get(callSid);
     if (connection) {
       logger.info(`🛑 Stopping speech recognition: ${callSid}`);
+      
+      // Clear keepalive interval
+      const interval = this.keepaliveIntervals.get(callSid);
+      if (interval) {
+        clearInterval(interval);
+        this.keepaliveIntervals.delete(callSid);
+      }
+      
       connection.finish();
       this.connections.delete(callSid);
     }

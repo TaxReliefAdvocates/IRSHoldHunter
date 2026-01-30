@@ -39,7 +39,7 @@ const server = http.createServer(app);
 // Initialize WebSocket support - MUST pass the server instance!
 const wsInstance = expressWs(app as any, server as any);
 
-// Initialize Socket.io with hybrid mode (more compatible)
+// Initialize Socket.io with INCREASED timeouts for Render
 export const io = new Server(server, {
   cors: {
     origin: process.env.CLIENT_URL || 'http://localhost:5173',
@@ -49,11 +49,16 @@ export const io = new Server(server, {
   // Allow both transports for better compatibility
   transports: ['polling', 'websocket'],
   allowUpgrades: true,
-  // Reduce ping interval to detect disconnects faster
-  pingInterval: 25000,
-  pingTimeout: 20000,
+  // INCREASED timeouts for Render's proxy
+  pingInterval: 10000, // Ping every 10s (was 25s)
+  pingTimeout: 60000, // Wait 60s before timeout (was 20s)
   // Limit max payload size
   maxHttpBufferSize: 1e6, // 1 MB
+  // Connection state recovery (NEW)
+  connectionStateRecovery: {
+    maxDisconnectionDuration: 2 * 60 * 1000, // 2 minutes
+    skipMiddlewares: true,
+  },
 });
 
 // Make io available to audio handler
